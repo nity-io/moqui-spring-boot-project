@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-2.1.xsd">
+    <service verb="get" noun="FormResponse">
+        <in-parameters><parameter name="formResponseId" required="true"/></in-parameters>
+        <out-parameters>
+            <auto-parameters entity-name="moqui.screen.form.FormResponse"/>
+            <parameter name="responseMap" type="Map"/>
+            <parameter name="dbForm" type="Map"/>
+            <parameter name="dbFormFieldList" type="List"/>
+            <parameter name="dbFormFieldPages" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <entity-find-one entity-name="moqui.screen.form.FormResponse" value-field="formResponse"/>
+            <if condition="formResponse.formId">
+                <entity-find-one entity-name="moqui.screen.form.DbForm" value-field="dbForm">
+                    <field-map field-name="formId" from="formResponse.formId"/></entity-find-one>
+                <entity-find entity-name="moqui.screen.form.DbFormField" list="dbFormFieldList">
+                    <econdition field-name="formId" from="formResponse.formId"/>
+                    <order-by field-name="layoutSequenceNum"/>
+                </entity-find>
+                <set field="dbFormFieldPages" from="1"/>
+                <iterate list="dbFormFieldList" entry="dbFormField">
+                    <set field="printPageNumber" from="dbFormField.printPageNumber ?: 1"/>
+                    <if condition="printPageNumber &gt; dbFormFieldPages"><set field="dbFormFieldPages" from="printPageNumber"/></if>
+                </iterate>
+            </if>
+            <script>context.putAll(formResponse)</script>
+            <entity-find entity-name="moqui.screen.form.FormResponseAnswer" list="answerList">
+                <econdition field-name="formResponseId"/></entity-find>
+            <set field="responseMap" from="[:]"/>
+            <iterate list="answerList" entry="answer">
+                <script>responseMap.put(answer.fieldName, answer.valueText)</script>
+            </iterate>
+        </actions>
+    </service>
+    <service verb="create" noun="FormResponse">
+        <in-parameters>
+            <parameter name="formLocation" required="true" default-value="DbForm#${formId}"/>
+            <parameter name="formId"/>
+            <parameter name="userId" default="ec.user.userId"/>
+            <parameter name="responseDate" type="Timestamp" default="ec.user.nowTimestamp"/>
+            <parameter name="responseMap" type="Map"/>
+        </in-parameters>
+        <out-parameters><parameter name="formResponseId"/></out-parameters>
+        <actions>
+            <service-call name="create#moqui.screen.form.FormResponse" in-map="context" out-map="context"/>
+
+            <if condition="responseMap">
+                <set field="formNode" from="ec.screen.getFormNode(formLocation)"/>
+                <iterate list="formNode.children('field')" entry="fieldNode">
+                    <set field="fieldName" from="fieldNode.attribute('name')"/>
+                    <if condition="responseMap.containsKey(fieldName)">
+                        <service-call name="create#moqui.screen.form.FormResponseAnswer"
+                                in-map="[formResponseId:formResponseId, formId:formId, fieldName:fieldName,
+                                    valueText:org.moqui.util.ObjectUtilities.toPlainString(responseMap.get(fieldName))]"/>
+                    </if>
+                </iterate>
+            </if>
+        </actions>
+    </service>
+    <service verb="update" noun="FormResponse">
+        <description>Updates existing FormResponseAnswer or adds new ones as needed. Note that this doesn't work with
+            fields that have multiple responses (it will update the first response).</description>
+        <in-parameters>
+            <parameter name="formResponseId" required="true"/>
+            <!-- QUESTION: update userId and responseDate? -->
+            <parameter name="responseMap" type="Map" required="true"/>
+        </in-parameters>
+        <out-parameters><parameter name="formResponseId"/></out-parameters>
+        <actions>
+            <entity-find-one entity-name="moqui.screen.form.FormResponse" value-field="formResponse"/>
+            <set field="formNode" from="ec.screen.getFormNode(formResponse.formLocation)"/>
+            <iterate list="formNode.children('field')" entry="fieldNode">
+                <set field="fieldName" from="fieldNode.attribute('name')"/>
+                <if condition="responseMap.containsKey(fieldName)">
+                    <entity-find-one entity-name="moqui.screen.form.FormResponseAnswer" value-field="answer">
+                        <field-map field-name="formResponseId"/><field-map field-name="fieldName"/></entity-find-one>
+                    <if condition="answer">
+                        <service-call name="update#moqui.screen.form.FormResponseAnswer"
+                                in-map="[formResponseAnswerId:answer.formResponseAnswerId,
+                                    valueText:org.moqui.util.ObjectUtilities.toPlainString(responseMap.get(fieldName))]"/>
+                        <else>
+                            <service-call name="create#moqui.screen.form.FormResponseAnswer"
+                                    in-map="[formResponseId:formResponseId, fieldName:fieldName,
+                                        valueText:org.moqui.util.ObjectUtilities.toPlainString(responseMap.get(fieldName))]"/>
+                        </else>
+                    </if>
+                </if>
+            </iterate>
+        </actions>
+    </service>
+    <service verb="delete" noun="FormResponse">
+        <in-parameters><parameter name="formResponseId" required="true"/></in-parameters>
+        <actions>
+            <entity-find-one entity-name="moqui.screen.form.FormResponse" value-field="formResponse"/>
+            <if condition="formResponse == null"><return message="Form Response ${formResponseId} not found"/></if>
+            <entity-delete-by-condition entity-name="moqui.screen.form.FormResponseAnswer">
+                <econdition field-name="formResponseId"/></entity-delete-by-condition>
+            <entity-delete value-field="formResponse"/>
+        </actions>
+    </service>
+    <service verb="update" noun="DbFormField">
+        <in-parameters>
+            <auto-parameters entity-name="moqui.screen.form.DbFormField" include="nonpk"/>
+            <auto-parameters entity-name="moqui.screen.form.DbFormField" include="pk" required="true"/>
+        </in-parameters>
+        <actions>
+            <entity-find entity-name="moqui.screen.form.DbFormFieldOption" list="dbFormFieldOptionList">
+                <econdition field-name="formId" from="formId"/>
+                <econdition field-name="fieldName" from="fieldName"/>
+            </entity-find>
+            <entity-delete-by-condition entity-name="moqui.screen.form.DbFormFieldOption">
+                <econdition field-name="formId" from="formId"/>
+                <econdition field-name="fieldName" from="fieldName"/>
+                <econdition field-name="sequenceNum" from="dbFormFieldOptionList.sequenceNum" operator="in"/>
+            </entity-delete-by-condition>
+            <service-call name="delete#moqui.screen.form.DbFormField" in-map="context"/>
+            <set field="fieldName" from="org.moqui.util.StringUtilities.prettyToCamelCase(title, false)"/>
+            <service-call name="create#moqui.screen.form.DbFormField" in-map="context"/>
+            <iterate list="dbFormFieldOptionList" entry="dbFormFieldOption">
+                <set field="dbFormFieldOption.formId" from="formId"/>
+                <set field="dbFormFieldOption.fieldName" from="fieldName"/>
+                <service-call name="create#moqui.screen.form.DbFormFieldOption" in-map="dbFormFieldOption"/>
+            </iterate>
+        </actions>
+    </service>
+    <service verb="delete" noun="DbFormField">
+        <in-parameters>
+            <auto-parameters entity-name="moqui.screen.form.DbFormField" include="nonpk"/>
+            <auto-parameters entity-name="moqui.screen.form.DbFormField" include="pk" required="true"/>
+        </in-parameters>
+        <actions>
+            <entity-find entity-name="moqui.screen.form.DbFormFieldOption" list="dbFormFieldOptionList">
+                <econdition field-name="formId" from="formId"/>
+                <econdition field-name="fieldName" from="fieldName"/>
+            </entity-find>
+            <entity-delete-by-condition entity-name="moqui.screen.form.DbFormFieldOption">
+                <econdition field-name="formId" from="formId"/>
+                <econdition field-name="fieldName" from="fieldName"/>
+                <econdition field-name="sequenceNum" from="dbFormFieldOptionList.sequenceNum" operator="in"/>
+            </entity-delete-by-condition>
+            <service-call name="delete#moqui.screen.form.DbFormField" in-map="context"/>
+        </actions>
+    </service>
+    <service verb="get" noun="FormResponseStats">
+        <in-parameters>
+            <parameter name="formId" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="textDbFormFieldResponseCountList" type="List"/>
+            <parameter name="enumDbFormFieldResponseCountList" type="List"/>
+            <parameter name="formResponseCount" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>enumFieldTypeEnumIdList = ['DBFFT_check', 'DBFFT_drop-down', 'DBFFT_radio'];</script>
+            <entity-find entity-name="moqui.screen.form.DbFormField" list="textDbFormFieldList">
+                <econdition field-name="formId" from="formId"/>
+                <econdition field-name="fieldTypeEnumId" from="enumFieldTypeEnumIdList" operator="not-in" />
+                <order-by field-name="layoutSequenceNum"/>
+            </entity-find>
+            <entity-find entity-name="moqui.screen.form.DbFormField" list="enumDbFormFieldList">
+                <econdition field-name="formId" from="formId"/>
+                <econdition field-name="fieldTypeEnumId" from="enumFieldTypeEnumIdList" operator="in"/>
+                <order-by field-name="layoutSequenceNum"/>
+            </entity-find>
+            <set field="textDbFormFieldResponseCountList" from="[]"/>
+            <iterate list="textDbFormFieldList" entry="textDbFormField">
+                <set field="textDbFormFieldResponseObj" from="[:]"/>
+                <entity-find-count entity-name="moqui.screen.form.FormResponseAnsAndDbFormField" count-field="textDbFormFieldResponseCount">
+                    <econdition field-name="formId" from="formId"/>
+                    <econdition field-name="fieldName" from="textDbFormField.fieldName"/>
+                    <econditions combine="and">
+                        <econdition field-name="valueText" value="" operator="not-equals"/>
+                        <econdition field-name="valueText" operator="is-not-null"/>
+                    </econditions>
+                </entity-find-count>
+                <script>textDbFormFieldResponseObj.put("title", textDbFormField.title)
+                    textDbFormFieldResponseObj.put("count", textDbFormFieldResponseCount)
+                    textDbFormFieldResponseCountList.add(textDbFormFieldResponseObj)</script>
+            </iterate>
+            <set field="enumDbFormFieldResponseCountList" from="[]"/>
+            <iterate list="enumDbFormFieldList" entry="enumDbFormField">
+                <set field="enumDbFormFieldOptionResponseObj" from="[:]"/>
+                <set field="enumDbFormFieldOptionResponseList" from="[]"/>
+                <entity-find entity-name="moqui.screen.form.DbFormFieldOption" list="dbFormFieldOptionList">
+                    <econdition field-name="formId" from="formId"/>
+                    <econdition field-name="fieldName" from="enumDbFormField.fieldName"/>
+                </entity-find>
+                <iterate list="dbFormFieldOptionList" entry="dbFormFieldOption">
+                    <set field="dbFormFieldOptionResponseObj" from="[:]"/>
+                    <entity-find-count entity-name="moqui.screen.form.FormResponseAnsAndDbFormField" count-field="enumDbFormFieldOptionResponseCount">
+                        <econdition field-name="formId" from="formId"/>
+                        <econdition field-name="fieldName" from="enumDbFormField.fieldName"/>
+                        <econdition field-name="valueText" from="dbFormFieldOption.keyValue" operator="equals"/>
+                    </entity-find-count>
+                    <script>dbFormFieldOptionResponseObj.put("text", dbFormFieldOption.text)
+                        dbFormFieldOptionResponseObj.put("count", enumDbFormFieldOptionResponseCount)
+                        enumDbFormFieldOptionResponseList.add(dbFormFieldOptionResponseObj)</script>
+                </iterate>
+                <script>enumDbFormFieldOptionResponseObj.put("title", enumDbFormField.title)
+                    enumDbFormFieldOptionResponseObj.put("fieldOptionList", enumDbFormFieldOptionResponseList)
+                    enumDbFormFieldResponseCountList.add(enumDbFormFieldOptionResponseObj)</script>
+            </iterate>
+            <entity-find-count entity-name="moqui.screen.form.FormResponse" count-field="formResponseCount">
+                <econdition field-name="formId" from="formId"/>
+            </entity-find-count>
+        </actions>
+    </service>
+</services>
