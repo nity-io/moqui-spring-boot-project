@@ -13,8 +13,8 @@
  */
 
 
-import org.moqui.Moqui
-import org.moqui.context.ExecutionContext
+import org.moqui.cache.Moqui
+import org.moqui.cache.context.ExecutionContext
 import org.moqui.jcache.MCache
 import spock.lang.*
 

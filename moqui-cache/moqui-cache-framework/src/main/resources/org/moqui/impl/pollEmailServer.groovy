@@ -30,7 +30,7 @@ import javax.mail.search.SearchTerm
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import org.moqui.entity.EntityValue
+import org.moqui.cache.entity.EntityValue
 import org.moqui.impl.context.ExecutionContextImpl
 
 Logger logger = LoggerFactory.getLogger("org.moqui.impl.pollEmailServer")

@@ -13,12 +13,12 @@
  */
 
 
-import org.moqui.Moqui
-import org.moqui.context.ExecutionContext
-import org.moqui.entity.EntityCondition
-import org.moqui.entity.EntityFind
-import org.moqui.entity.EntityList
-import org.moqui.entity.EntityValue
+import org.moqui.cache.Moqui
+import org.moqui.cache.context.ExecutionContext
+import org.moqui.cache.entity.EntityCondition
+import org.moqui.cache.entity.EntityFind
+import org.moqui.cache.entity.EntityList
+import org.moqui.cache.entity.EntityValue
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spock.lang.Ignore

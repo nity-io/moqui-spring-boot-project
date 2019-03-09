@@ -94,9 +94,9 @@ along with this software (see the LICENSE.md file). If not, see
         </out-parameters>
         <actions><script><![CDATA[
             import groovy.transform.CompileStatic
-            import org.moqui.context.ExecutionContext
-            import org.moqui.entity.EntityList
-            import org.moqui.entity.EntityValue
+            import org.moqui.cache.context.ExecutionContext
+            import org.moqui.cache.entity.EntityList
+            import org.moqui.cache.entity.EntityValue
             import org.moqui.impl.entity.EntityListImpl
 
             ExecutionContext ec = context.ec

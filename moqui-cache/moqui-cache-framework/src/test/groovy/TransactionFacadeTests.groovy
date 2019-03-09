@@ -15,8 +15,8 @@
 import java.sql.Connection
 import java.sql.Statement
 
-import org.moqui.Moqui
-import org.moqui.context.ExecutionContext
+import org.moqui.cache.Moqui
+import org.moqui.cache.context.ExecutionContext
 
 import spock.lang.Shared
 import spock.lang.Specification

@@ -195,11 +195,11 @@ along with this software (see the LICENSE.md file). If not, see
         </out-parameters>
         <actions>
             <script><![CDATA[
-                import org.moqui.context.ExecutionContext
-                import org.moqui.entity.EntityCondition
-                import org.moqui.entity.EntityFind
-                import org.moqui.entity.EntityList
-                import org.moqui.entity.EntityListIterator
+                import org.moqui.cache.context.ExecutionContext
+                import org.moqui.cache.entity.EntityCondition
+                import org.moqui.cache.entity.EntityFind
+                import org.moqui.cache.entity.EntityList
+                import org.moqui.cache.entity.EntityListIterator
 
                 // TODO: current approach gets data for all time up to now - delayBufferMillis if no lastSuccessfulSyncTime
                 // TODO:    for bootstrapping, consider a better approach, maybe find oldest record and do splits from

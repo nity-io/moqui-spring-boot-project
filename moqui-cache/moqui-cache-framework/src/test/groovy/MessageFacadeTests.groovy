@@ -14,9 +14,9 @@
 
 import spock.lang.*
 
-import org.moqui.context.ExecutionContext
-import org.moqui.Moqui
-import org.moqui.entity.EntityValue
+import org.moqui.cache.context.ExecutionContext
+import org.moqui.cache.Moqui
+import org.moqui.cache.entity.EntityValue
 import java.sql.Timestamp
 
 class MessageFacadeTests extends Specification {

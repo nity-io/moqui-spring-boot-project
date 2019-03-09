@@ -14,11 +14,11 @@
 
 
 import org.moqui.impl.service.ServiceFacadeImpl
-import org.moqui.service.ServiceCallback
+import org.moqui.cache.service.ServiceCallback
 import spock.lang.*
 
-import org.moqui.context.ExecutionContext
-import org.moqui.Moqui
+import org.moqui.cache.context.ExecutionContext
+import org.moqui.cache.Moqui
 
 class ServiceFacadeTests extends Specification {
     @Shared

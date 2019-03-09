@@ -76,19 +76,7 @@ dependencies {
     compileOnly 'org.fusesource.jansi:jansi:1.17.1'
     // Findbugs need only during compile (used by freemarker and various moqui classes)
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'
-
-    // ========== Local (flatDir) libraries in framework/lib ==========
-
-    // Bitronix Transaction Manager (the default internal tx mgr; custom build from source as 3.0.0 not yet released)
-    compile 'org.codehaus.btm:btm:3.0.0-SNAPSHOT' // Apache 2.0
-    // Bitronix depends on javassist (as does OrientDB, etc; note included here for easier reference, not in framework/lib)
-    compile 'org.javassist:javassist:3.23.1-GA' // Apache 2.0
-
-    // CUPS4J - print through CUPS server
-    compile name: 'cups4j', version: '0.6.4' // LGPL <== NOTE!
-    // CUPS4J sepends on Apache HTTP Client (unfortunate, adds about 1.1MB)
-    compile 'org.apache.httpcomponents:httpclient:4.5.6'
-
+    
     // ========== Libraries from jcenter ==========
 
     // Apache Commons

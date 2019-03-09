@@ -258,8 +258,8 @@ along with this software (see the LICENSE.md file). If not, see
         <out-parameters><parameter name="recordsWritten" type="Integer"/></out-parameters>
         <actions>
             <script><![CDATA[
-                import org.moqui.entity.EntityDataWriter
-                import org.moqui.context.ExecutionContext
+                import org.moqui.cache.entity.EntityDataWriter
+                import org.moqui.cache.context.ExecutionContext
                 ExecutionContext ec = context.ec
                 EntityDataWriter edw = ec.entity.makeDataWriter().allEntities()
 
@@ -292,8 +292,8 @@ along with this software (see the LICENSE.md file). If not, see
         <out-parameters><parameter name="recordsLoaded" type="Long"/></out-parameters>
         <actions>
             <script><![CDATA[
-                import org.moqui.entity.EntityDataLoader
-                import org.moqui.context.ExecutionContext
+                import org.moqui.cache.entity.EntityDataLoader
+                import org.moqui.cache.context.ExecutionContext
                 ExecutionContext ec = context.ec
                 EntityDataLoader edl = ec.entity.makeDataLoader().dummyFks(dummyFks).useTryInsert(useTryInsert)
                         .disableEntityEca(disableEntityEca).disableAuditLog(disableAuditLog)

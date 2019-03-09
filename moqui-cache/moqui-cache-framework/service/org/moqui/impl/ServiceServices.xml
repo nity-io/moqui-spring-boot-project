@@ -19,8 +19,8 @@ along with this software (see the LICENSE.md file). If not, see
         <out-parameters><parameter name="recordsRemoved" type="Long"/></out-parameters>
         <actions>
             <script>
-                import org.moqui.context.ExecutionContext
-                import org.moqui.entity.EntityCondition
+                import org.moqui.cache.context.ExecutionContext
+                import org.moqui.cache.entity.EntityCondition
                 ExecutionContext ec = context.ec
                 Calendar basisCal = ec.user.getCalendarSafe()
                 basisCal.add(Calendar.DAY_OF_YEAR, (int) -daysToKeep)

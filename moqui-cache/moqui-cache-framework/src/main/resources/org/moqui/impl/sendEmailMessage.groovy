@@ -19,7 +19,7 @@
 
 import org.apache.commons.mail.DefaultAuthenticator
 import org.apache.commons.mail.HtmlEmail
-import org.moqui.entity.EntityValue
+import org.moqui.cache.entity.EntityValue
 import org.moqui.impl.context.ExecutionContextImpl
 
 import org.slf4j.Logger

@@ -12,10 +12,10 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-import org.moqui.Moqui
-import org.moqui.context.ExecutionContext
-import org.moqui.screen.ScreenTest
-import org.moqui.screen.ScreenTest.ScreenTestRender
+import org.moqui.cache.Moqui
+import org.moqui.cache.context.ExecutionContext
+import org.moqui.cache.screen.ScreenTest
+import org.moqui.cache.screen.ScreenTest.ScreenTestRender
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spock.lang.Shared

@@ -147,7 +147,7 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="moquiStatusMap" type="Map"/>
         </out-parameters>
         <actions><script><![CDATA[
-            import org.moqui.context.ExecutionContext
+            import org.moqui.cache.context.ExecutionContext
             import java.util.concurrent.Future
             ExecutionContext ec = context.ec
 
@@ -169,8 +169,8 @@ along with this software (see the LICENSE.md file). If not, see
         </out-parameters>
         <actions><script><![CDATA[
             import groovy.json.JsonSlurper
-            import org.moqui.context.ExecutionContext
-            import org.moqui.entity.EntityValue
+            import org.moqui.cache.context.ExecutionContext
+            import org.moqui.cache.entity.EntityValue
             import org.moqui.util.RestClient
             ExecutionContext ec = context.ec
 
@@ -272,8 +272,8 @@ along with this software (see the LICENSE.md file). If not, see
         <implements service="org.moqui.impl.InstanceServices.init#Instance"/>
         <actions><script><![CDATA[
             import groovy.json.JsonSlurper
-            import org.moqui.context.ExecutionContext
-            import org.moqui.entity.EntityValue
+            import org.moqui.cache.context.ExecutionContext
+            import org.moqui.cache.entity.EntityValue
             import org.moqui.util.RestClient
 
             connectSuccess = null
@@ -359,8 +359,8 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- see https://docs.docker.com/engine/reference/api/docker_remote_api_v1.24/#/start-a-container -->
         <implements service="org.moqui.impl.InstanceServices.start#Instance"/>
         <actions><script><![CDATA[
-            import org.moqui.context.ExecutionContext
-            import org.moqui.entity.EntityValue
+            import org.moqui.cache.context.ExecutionContext
+            import org.moqui.cache.entity.EntityValue
             import org.moqui.util.RestClient
 
             instanceStarted = false
@@ -404,8 +404,8 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- see https://docs.docker.com/engine/reference/api/docker_remote_api_v1.24/#/stop-a-container -->
         <implements service="org.moqui.impl.InstanceServices.stop#Instance"/>
         <actions><script><![CDATA[
-            import org.moqui.context.ExecutionContext
-            import org.moqui.entity.EntityValue
+            import org.moqui.cache.context.ExecutionContext
+            import org.moqui.cache.entity.EntityValue
             import org.moqui.util.RestClient
 
             instanceStopped = false
@@ -450,8 +450,8 @@ along with this software (see the LICENSE.md file). If not, see
         <implements service="org.moqui.impl.InstanceServices.remove#Instance"/>
         <actions>
             <actions><script><![CDATA[
-            import org.moqui.context.ExecutionContext
-            import org.moqui.entity.EntityValue
+            import org.moqui.cache.context.ExecutionContext
+            import org.moqui.cache.entity.EntityValue
             import org.moqui.util.RestClient
 
             instanceRemoved = false
@@ -492,8 +492,8 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- see https://docs.docker.com/engine/reference/api/docker_remote_api_v1.24/#/inspect-a-container -->
         <implements service="org.moqui.impl.InstanceServices.check#Instance"/>
         <actions><script><![CDATA[
-            import org.moqui.context.ExecutionContext
-            import org.moqui.entity.EntityValue
+            import org.moqui.cache.context.ExecutionContext
+            import org.moqui.cache.entity.EntityValue
             import org.moqui.util.RestClient
 
             connectSuccess = null
