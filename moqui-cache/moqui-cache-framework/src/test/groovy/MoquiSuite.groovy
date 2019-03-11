@@ -19,10 +19,7 @@ import org.junit.runners.Suite
 import org.moqui.cache.Moqui
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses([ CacheFacadeTests.class, EntityCrud.class, EntityFindTests.class, EntityNoSqlCrud.class,
-        L10nFacadeTests.class, MessageFacadeTests.class, ResourceFacadeTests.class,
-        ServiceCrudImplicit.class, ServiceFacadeTests.class, SubSelectTests.class, TransactionFacadeTests.class, UserFacadeTests.class,
-        SystemScreenRenderTests.class, ToolsRestApiTests.class, ToolsScreenRenderTests.class])
+@Suite.SuiteClasses([ CacheFacadeTests.class ])
 class MoquiSuite {
     @AfterClass
     public static void destroyMoqui() {
