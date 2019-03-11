@@ -1,23 +1,23 @@
 /*
- * This software is in the public domain under CC0 1.0 Universal plus a 
+ * This software is in the public domain under CC0 1.0 Universal plus a
  * Grant of Patent License.
- * 
+ *
  * To the extent possible under law, the author(s) have dedicated all
  * copyright and related and neighboring rights to this software to the
  * public domain worldwide. This software is distributed without any
  * warranty.
- * 
+ *
  * You should have received a copy of the CC0 Public Domain Dedication
  * along with this software (see the LICENSE.md file). If not, see
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package org.moqui.impl.context
+package org.moqui.cache.impl.context
 
 import groovy.transform.CompileStatic
 import org.moqui.jcache.MCache
 import org.moqui.jcache.MCacheConfiguration
 import org.moqui.jcache.MCacheManager
-import org.moqui.impl.tools.MCacheToolFactory
+import org.moqui.cache.impl.tools.MCacheToolFactory
 import org.moqui.jcache.MEntry
 import org.moqui.jcache.MStats
 import org.moqui.util.CollectionUtilities
@@ -38,7 +38,7 @@ import java.sql.Timestamp
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
-import org.moqui.context.CacheFacade
+import org.moqui.cache.context.CacheFacade
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
