@@ -15,6 +15,7 @@ package org.moqui.cache.impl.context
 
 import groovy.transform.CompileStatic
 import org.moqui.cache.context.CacheFacade
+import org.moqui.cache.context.ExecutionContext
 import org.moqui.cache.context.ExecutionContextFactory
 import org.moqui.cache.context.ToolFactory
 import org.moqui.util.CollectionUtilities

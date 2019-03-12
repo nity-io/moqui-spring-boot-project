@@ -14,24 +14,27 @@
 
 
 import org.moqui.cache.Moqui
+import org.moqui.cache.context.CacheFacade
 import org.moqui.cache.context.ExecutionContext
+import org.moqui.cache.impl.context.ExecutionContextFactoryImpl
 import org.moqui.jcache.MCache
 import spock.lang.*
 
 class CacheFacadeTests extends Specification {
     @Shared
-    ExecutionContext ec
+    CacheFacade cacheFacade
     @Shared
     MCache testCache
 
     def setupSpec() {
-        // init the framework, get the ec
-        ec = Moqui.getExecutionContext()
-        testCache = ec.cache.getLocalCache("CacheFacadeTests")
+        ExecutionContextFactoryImpl executionContextFactoryImpl = new ExecutionContextFactoryImpl();
+        cacheFacade = executionContextFactoryImpl.getCache()
+
+        testCache = cacheFacade.getLocalCache("CacheFacadeTests")
     }
 
     def cleanupSpec() {
-        ec.destroy()
+
     }
 
     def "add cache element"() {
@@ -79,7 +82,7 @@ class CacheFacadeTests extends Specification {
 
     def "get cache concurrently"() {
         def getCache = {
-            ec.cache.getLocalCache("CacheFacadeConcurrencyTests")
+            cacheFacade.getLocalCache("CacheFacadeConcurrencyTests")
         }
         when:
         def caches = ConcurrentExecution.executeConcurrently(10, getCache)

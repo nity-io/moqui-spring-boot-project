@@ -1,0 +1,41 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+apply plugin: 'groovy'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+
+repositories {
+    jcenter() // http://jcenter.bintray.com
+}
+
+dependencies {
+    compile 'org.postgresql:postgresql:42.2.2'
+    
+    compile project(':moqui-cache:moqui-cache-spring-boot-starter')
+
+    implementation('org.springframework.boot:spring-boot-starter-web') {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+    implementation('org.springframework.boot:spring-boot-starter-jdbc'){
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+    
+    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
+    implementation 'org.codehaus.groovy:groovy'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+springBoot {
+    mainClassName = 'io.nity.moqui.cache.sample.DemoApp'
+}

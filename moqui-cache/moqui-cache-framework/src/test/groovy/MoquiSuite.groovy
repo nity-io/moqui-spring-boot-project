@@ -23,6 +23,6 @@ import org.moqui.cache.Moqui
 class MoquiSuite {
     @AfterClass
     public static void destroyMoqui() {
-        Moqui.destroyActiveExecutionContextFactory();
+
     }
 }
