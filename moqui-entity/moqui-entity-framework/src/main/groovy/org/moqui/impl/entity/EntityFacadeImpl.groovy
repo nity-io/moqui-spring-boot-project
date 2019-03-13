@@ -266,51 +266,7 @@ class EntityFacadeImpl implements EntityFacade {
             this.efi = efi
             this.datasourceNode = datasourceNode
 
-            String groupName = datasourceNode.attribute("group-name")
-            uniqueName =  groupName + "_DS"
-
-            MNode jndiJdbcNode = datasourceNode.first("jndi-jdbc")
-            inlineJdbc = datasourceNode.first("inline-jdbc")
-            if (jndiJdbcNode == null && inlineJdbc == null) {
-                MNode dbNode = efi.getDatabaseNode(groupName)
-                inlineJdbc = dbNode.first("inline-jdbc")
-            }
-            MNode xaProperties = inlineJdbc?.first("xa-properties")
-            database = efi.getDatabaseNode(groupName)
-
-            if (jndiJdbcNode != null) {
-                serverJndi = efi.getEntityFacadeNode().first("server-jndi")
-                if (serverJndi != null) serverJndi.setSystemExpandAttributes(true)
-                jndiName = jndiJdbcNode.attribute("jndi-name")
-            } else if (xaProperties != null) {
-                xaDsClass = inlineJdbc.attribute("xa-ds-class") ? inlineJdbc.attribute("xa-ds-class") : database.attribute("default-xa-ds-class")
-
-                xaProps = new Properties()
-                xaProperties.setSystemExpandAttributes(true)
-                for (String key in xaProperties.attributes.keySet()) {
-                    if (xaProps.containsKey(key)) continue
-                    // various H2, Derby, etc properties have a ${moqui.runtime} which is a System property, others may have it too
-                    String propValue = xaProperties.attribute(key)
-                    if (propValue) xaProps.setProperty(key, propValue)
-                }
-
-                for (String propName in xaProps.stringPropertyNames()) {
-                    if (propName.toLowerCase().contains("password")) continue
-                    dsDetails.put(propName, xaProps.getProperty(propName))
-                }
-            } else if (inlineJdbc != null) {
-                inlineJdbc.setSystemExpandAttributes(true)
-                jdbcDriver = inlineJdbc.attribute("jdbc-driver") ? inlineJdbc.attribute("jdbc-driver") : database.attribute("default-jdbc-driver")
-                jdbcUri = inlineJdbc.attribute("jdbc-uri")
-                if (jdbcUri.contains('${')) jdbcUri = SystemBinding.expand(jdbcUri)
-                jdbcUsername = inlineJdbc.attribute("jdbc-username")
-                jdbcPassword = inlineJdbc.attribute("jdbc-password")
-
-                dsDetails.put("uri", jdbcUri)
-                dsDetails.put("user", jdbcUsername)
-            } else {
-                throw new EntityException("Data source for group ${groupName} has no inline-jdbc or jndi-jdbc configuration")
-            }
+            //不实现
         }
     }
 
@@ -1940,8 +1896,8 @@ class EntityFacadeImpl implements EntityFacade {
         Connection stashed = tfi.getTxConnection(groupName)
         if (stashed != null) return stashed
 
-        EntityDatasourceFactory edf = getDatasourceFactory(groupName)
-        DataSource ds = edf.getDataSource()
+//        EntityDatasourceFactory edf = getDatasourceFactory(groupName)
+        DataSource ds = ecfi.dataSource
         if (ds == null) throw new EntityException("Cannot get JDBC Connection for group-name [${groupName}] because it has no DataSource")
         Connection newCon
         if (ds instanceof XADataSource) {

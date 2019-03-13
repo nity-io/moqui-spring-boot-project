@@ -24,6 +24,7 @@ import org.moqui.impl.context.ContextJavaUtil.TxStackInfo
 import org.moqui.util.MNode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.transaction.PlatformTransactionManager
 
 import javax.naming.Context
 import javax.naming.InitialContext
@@ -51,6 +52,8 @@ class TransactionFacadeImpl implements TransactionFacade {
 
     private ThreadLocal<TxStackInfo> txStackInfoCurThread = new ThreadLocal<TxStackInfo>()
     private ThreadLocal<LinkedList<TxStackInfo>> txStackInfoListThread = new ThreadLocal<LinkedList<TxStackInfo>>()
+
+    private final PlatformTransactionManager transactionManager;
 
     TransactionFacadeImpl(ExecutionContextFactoryImpl ecfi) {
         this.ecfi = ecfi

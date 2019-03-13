@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Map;
 
 import groovy.lang.Closure;
+import org.moqui.cache.context.CacheFacade;
 import org.moqui.entity.EntityFacade;
 import org.moqui.entity.EntityValue;
-import org.moqui.screen.ScreenFacade;
 import org.moqui.service.ServiceFacade;
 import org.moqui.util.ContextBinding;
 import org.moqui.util.ContextStack;
@@ -51,11 +51,6 @@ public interface ExecutionContext {
      * is not needed */
     <V> V getTool(@Nonnull String toolName, Class<V> instanceClass, Object... parameters);
 
-    /** If running through a web (HTTP servlet) request offers access to the various web objects/information.
-     * If not running in a web context will return null.
-     */
-    @Nullable WebFacade getWeb();
-
     /** For information about the user and user preferences (including locale, time zone, currency, etc). */
     @Nonnull UserFacade getUser();
 
@@ -86,15 +81,8 @@ public interface ExecutionContext {
     /** For calling services (local or remote, sync or async or scheduled). */
     @Nonnull ServiceFacade getService();
 
-    /** For rendering screens for general use (mostly for things other than web pages or web page snippets). */
-    @Nonnull ScreenFacade getScreen();
-
     @Nonnull NotificationMessage makeNotificationMessage();
     @Nonnull List<NotificationMessage> getNotificationMessages(@Nullable String topic);
-
-    /** This should be called by a filter or servlet at the beginning of an HTTP request to initialize a web facade
-     * for the current thread. */
-    void initWebFacade(@Nonnull String webappMoquiName, @Nonnull HttpServletRequest request, @Nonnull HttpServletResponse response);
 
     /** A lightweight asynchronous executor. An alternative to Quartz, still ExecutionContext aware and uses
      * the current ExecutionContext in the separate thread (retaining user, authz context, etc). */

@@ -44,23 +44,7 @@ public class ServiceJsonRpcDispatcher {
     }
 
     public void dispatch() {
-        Map callMap = eci.web.getRequestParameters()
-        if (callMap._requestBodyJsonList) {
-            List callList = (List) callMap._requestBodyJsonList
-            List<Map> jsonRespList = []
-            for (Object callSingleObj in callList) {
-                if (callSingleObj instanceof Map) {
-                    Map callSingleMap = (Map) callSingleObj
-                    jsonRespList.add(callSingle(callSingleMap.method as String, callSingleMap.params, callSingleMap.id ?: null))
-                } else {
-                    jsonRespList.add(callSingle(null, callSingleObj, null))
-                }
-            }
-        } else {
-            // logger.info("========= JSON-RPC request with map: ${callMap}")
-            Map jsonResp = callSingle(callMap.method as String, callMap.params, callMap.id ?: null)
-            eci.getWeb().sendJsonResponse(jsonResp)
-        }
+
     }
 
     protected Map callSingle(String method, Object paramsObj, Object id) {
@@ -69,10 +53,7 @@ public class ServiceJsonRpcDispatcher {
         String errorMessage = null
         Integer errorCode = null
         ServiceDefinition sd = method ? eci.serviceFacade.getServiceDefinition(method) : null
-        if (eci.web.getRequestParameters()._requestBodyJsonParseError) {
-            errorMessage = eci.web.getRequestParameters()._requestBodyJsonParseError
-            errorCode = PARSE_ERROR
-        } else if (!method) {
+        if (!method) {
             errorMessage = "No method specified"
             errorCode = INVALID_REQUEST
         } else if (sd == null) {

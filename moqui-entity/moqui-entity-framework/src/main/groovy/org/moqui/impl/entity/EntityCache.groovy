@@ -19,7 +19,7 @@ import javax.cache.Cache
 import org.moqui.entity.EntityCondition
 import org.moqui.entity.EntityList
 import org.moqui.entity.EntityValue
-import org.moqui.impl.context.CacheFacadeImpl
+import org.moqui.cache.impl.context.CacheFacadeImpl
 import org.moqui.util.MNode
 import org.moqui.util.SimpleTopic
 import org.slf4j.Logger
@@ -447,7 +447,7 @@ class EntityCache {
                 // remember that this member entity has been used in a cached view entity
                 List<String> cachedViewEntityNames = cachedListViewEntitiesByMember.get(memberEntityName)
                 if (cachedViewEntityNames == null) {
-                    cachedViewEntityNames = (List<String>) Collections.synchronizedList(new ArrayList<>())
+                    cachedViewEntityNames = (List<String>) Collections.synchronizedList(new ArrayList<String>())
                     cachedListViewEntitiesByMember.put(memberEntityName, cachedViewEntityNames)
                     cachedViewEntityNames.add(entityName)
                     // logger.info("Added ${entityName} as a cached view-entity for member ${memberEntityName}")

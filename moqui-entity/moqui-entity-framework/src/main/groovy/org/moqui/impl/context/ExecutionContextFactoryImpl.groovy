@@ -13,6 +13,7 @@
  */
 package org.moqui.impl.context
 
+import bitronix.tm.BitronixTransactionManager
 import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
@@ -27,6 +28,8 @@ import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.tools.GroovyClass
 import org.moqui.BaseException
 import org.moqui.Moqui
+import org.moqui.cache.context.CacheFacade
+import org.moqui.cache.impl.context.CacheFacadeImpl
 import org.moqui.context.*
 import org.moqui.context.ArtifactExecutionInfo.ArtifactType
 import org.moqui.entity.EntityDataLoader
@@ -41,10 +44,8 @@ import org.moqui.impl.context.ContextJavaUtil.ArtifactBinInfo
 import org.moqui.impl.context.ContextJavaUtil.ArtifactStatsInfo
 import org.moqui.impl.context.ContextJavaUtil.ArtifactHitInfo
 import org.moqui.impl.entity.EntityFacadeImpl
-import org.moqui.impl.screen.ScreenFacadeImpl
 import org.moqui.impl.service.ServiceFacadeImpl
 import org.moqui.impl.webapp.NotificationWebSocketListener
-import org.moqui.screen.ScreenFacade
 import org.moqui.service.ServiceFacade
 import org.moqui.util.MNode
 import org.moqui.resource.ResourceReference
@@ -59,6 +60,7 @@ import javax.annotation.Nonnull
 import javax.servlet.ServletContext
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
+import javax.sql.DataSource
 import javax.websocket.server.ServerContainer
 import java.lang.management.ManagementFactory
 import java.sql.Timestamp
@@ -140,28 +142,32 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
     @SuppressWarnings("GrFinalVariableAccess") public final TransactionFacadeImpl transactionFacade
     @SuppressWarnings("GrFinalVariableAccess") public final EntityFacadeImpl entityFacade
     @SuppressWarnings("GrFinalVariableAccess") public final ServiceFacadeImpl serviceFacade
-    @SuppressWarnings("GrFinalVariableAccess") public final ScreenFacadeImpl screenFacade
 
     /** The main worker pool for services, running async closures and runnables, etc */
     @SuppressWarnings("GrFinalVariableAccess") public final ThreadPoolExecutor workerPool
     /** An executor for the scheduled job runner */
     public final ScheduledThreadPoolExecutor scheduledExecutor = new ScheduledThreadPoolExecutor(4)
 
+    public final DataSource dataSource
+    public final BitronixTransactionManager transactionManager
+
     /**
      * This constructor gets runtime directory and conf file location from a properties file on the classpath so that
      * it can initialize on its own. This is the constructor to be used by the ServiceLoader in the Moqui.java file,
      * or by init methods in a servlet or context filter or OSGi component or Spring component or whatever.
      */
-    ExecutionContextFactoryImpl() {
+    ExecutionContextFactoryImpl(CacheFacadeImpl cacheFacade, DataSource dataSource, BitronixTransactionManager transactionManager) {
         long initStartTime = System.currentTimeMillis()
 
-        URL devConfUrl = this.class.getClassLoader().getResource("MoquiDevConf.xml")
-        if (devConfUrl == null) throw new IllegalArgumentException("Could not find MoquiDevConf.xml file on the classpath")
+        this.dataSource = dataSource
+        this.transactionManager = transactionManager
 
-        // sleep here to attach profiler before init: sleep(30000)
+        String fileName = "MoquiEntityConf.xml";
+        URL confUrl = this.class.getClassLoader().getResource(fileName)
+        if (confUrl == null) throw new IllegalArgumentException("Could not find MoquiEntityConf.xml file on the classpath")
 
         // initialize all configuration, get various conf files merged and load components
-        MNode runtimeConfXmlRoot = MNode.parse(devConfUrl.toString(), devConfUrl.newInputStream())
+        MNode runtimeConfXmlRoot = MNode.parse(confUrl.toString(), confUrl.newInputStream())
         MNode baseConfigNode = initBaseConfig(runtimeConfXmlRoot)
         // init components before initConfig() so component configuration files can be incorporated
         initComponents(baseConfigNode)
@@ -173,7 +179,7 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         preFacadeInit()
 
         // this init order is important as some facades will use others
-        cacheFacade = new CacheFacadeImpl(this)
+        this.cacheFacade = cacheFacade;
         logger.info("Cache Facade initialized")
         loggerFacade = new LoggerFacadeImpl(this)
         // logger.info("Logger Facade initialized")
@@ -186,7 +192,6 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         logger.info("Entity Facade initialized")
         serviceFacade = new ServiceFacadeImpl(this)
         logger.info("Service Facade initialized")
-        screenFacade = new ScreenFacadeImpl(this)
         logger.info("Screen Facade initialized")
 
         postFacadeInit()
@@ -225,8 +230,8 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         preFacadeInit()
 
         // this init order is important as some facades will use others
-        cacheFacade = new CacheFacadeImpl(this)
-        logger.info("Cache Facade initialized")
+//        cacheFacade = new CacheFacadeImpl(this)
+//        logger.info("Cache Facade initialized")
         loggerFacade = new LoggerFacadeImpl(this)
         // logger.info("LoggerFacadeImpl initialized")
         resourceFacade = new ResourceFacadeImpl(this)
@@ -238,7 +243,6 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         logger.info("Entity Facade initialized")
         serviceFacade = new ServiceFacadeImpl(this)
         logger.info("Service Facade initialized")
-        screenFacade = new ScreenFacadeImpl(this)
         logger.info("Screen Facade initialized")
 
         postFacadeInit()
@@ -533,7 +537,6 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
     void warmCache() {
         this.entityFacade.warmCache()
         this.serviceFacade.warmCache()
-        this.screenFacade.warmCache()
     }
 
     /** Setup the cached ClassLoader, this should init in the main thread so we can set it properly */
@@ -923,7 +926,6 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
     @Override @Nonnull TransactionFacade getTransaction() { transactionFacade }
     @Override @Nonnull EntityFacade getEntity() { entityFacade }
     @Override @Nonnull ServiceFacade getService() { serviceFacade }
-    @Override @Nonnull ScreenFacade getScreen() { screenFacade }
 
     @Override @Nonnull ClassLoader getClassLoader() { groovyClassLoader }
     @Override @Nonnull GroovyClassLoader getGroovyClassLoader() { groovyClassLoader }
@@ -1011,11 +1013,11 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         long diskTotalSpace = runtimeFile.getTotalSpace()
         BigDecimal diskPercent = (((diskTotalSpace - diskFreeSpace) / diskTotalSpace) * 100.0).setScale(2, BigDecimal.ROUND_HALF_UP)
 
-        HttpServletRequest request = getEci().getWeb()?.getRequest()
+//        HttpServletRequest request = getEci().getWeb()?.getRequest()
         Map<String, Object> statusMap = [ MoquiFramework:moquiVersion,
             Utilization: [LoadPercent:loadPercent, HeapPercent:heapPercent, DiskPercent:diskPercent],
-            Web: [ LocalAddr:request?.getLocalAddr(), LocalPort:request?.getLocalPort(), LocalName:request?.getLocalName(),
-                     ServerName:request?.getServerName(), ServerPort:request?.getServerPort() ],
+//            Web: [ LocalAddr:request?.getLocalAddr(), LocalPort:request?.getLocalPort(), LocalName:request?.getLocalName(),
+//                     ServerName:request?.getServerName(), ServerPort:request?.getServerPort() ],
             Heap: [ Used:(heapUsed/(1024*1024)).setScale(3, BigDecimal.ROUND_HALF_UP),
                       Committed:(heapMemoryUsage.getCommitted()/(1024*1024)).setScale(3, BigDecimal.ROUND_HALF_UP),
                       Max:(heapMax/(1024*1024)).setScale(3, BigDecimal.ROUND_HALF_UP) ],

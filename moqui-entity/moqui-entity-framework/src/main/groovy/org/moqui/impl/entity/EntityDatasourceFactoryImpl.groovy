@@ -46,57 +46,7 @@ class EntityDatasourceFactoryImpl implements EntityDatasourceFactory {
         this.efi = (EntityFacadeImpl) ef
         this.datasourceNode = datasourceNode
 
-        // init the DataSource
-        dsi = new EntityFacadeImpl.DatasourceInfo(efi, datasourceNode)
-        if (dsi.jndiName != null && !dsi.jndiName.isEmpty()) {
-            try {
-                InitialContext ic;
-                if (dsi.serverJndi) {
-                    Hashtable<String, Object> h = new Hashtable<String, Object>()
-                    h.put(Context.INITIAL_CONTEXT_FACTORY, dsi.serverJndi.attribute("initial-context-factory"))
-                    h.put(Context.PROVIDER_URL, dsi.serverJndi.attribute("context-provider-url"))
-                    if (dsi.serverJndi.attribute("url-pkg-prefixes")) h.put(Context.URL_PKG_PREFIXES, dsi.serverJndi.attribute("url-pkg-prefixes"))
-                    if (dsi.serverJndi.attribute("security-principal")) h.put(Context.SECURITY_PRINCIPAL, dsi.serverJndi.attribute("security-principal"))
-                    if (dsi.serverJndi.attribute("security-credentials")) h.put(Context.SECURITY_CREDENTIALS, dsi.serverJndi.attribute("security-credentials"))
-                    ic = new InitialContext(h)
-                } else {
-                    ic = new InitialContext()
-                }
-
-                this.dataSource = (DataSource) ic.lookup(dsi.jndiName)
-                if (this.dataSource == null) {
-                    logger.error("Could not find DataSource with name [${dsi.jndiName}] in JNDI server [${dsi.serverJndi ? dsi.serverJndi.attribute("context-provider-url") : "default"}] for datasource with group-name [${datasourceNode.attribute("group-name")}].")
-                }
-            } catch (NamingException ne) {
-                logger.error("Error finding DataSource with name [${dsi.jndiName}] in JNDI server [${dsi.serverJndi ? dsi.serverJndi.attribute("context-provider-url") : "default"}] for datasource with group-name [${datasourceNode.attribute("group-name")}].", ne)
-            }
-        } else if (dsi.inlineJdbc != null) {
-            // special thing for embedded derby, just set an system property; for derby.log, etc
-            if (datasourceNode.attribute("database-conf-name") == "derby" && !System.getProperty("derby.system.home")) {
-                System.setProperty("derby.system.home", efi.ecfi.runtimePath + "/db/derby")
-                logger.info("Set property derby.system.home to [${System.getProperty("derby.system.home")}]")
-            }
-
-            TransactionInternal ti = efi.ecfi.transactionFacade.getTransactionInternal()
-            // init the DataSource, if it fails for any reason retry a few times
-            for (int retry = 1; retry <= DS_RETRY_COUNT; retry++) {
-                try {
-                    this.dataSource = ti.getDataSource(efi, datasourceNode)
-                    break
-                } catch (Throwable t) {
-                    if (retry < DS_RETRY_COUNT) {
-                        Throwable cause = t
-                        while (cause.getCause() != null) cause = cause.getCause()
-                        logger.error("Error connecting to DataSource ${datasourceNode.attribute("group-name")} (${datasourceNode.attribute("database-conf-name")}), try ${retry} of ${DS_RETRY_COUNT}: ${cause}")
-                        sleep(DS_RETRY_SLEEP)
-                    } else {
-                        throw t
-                    }
-                }
-            }
-        } else {
-            throw new EntityException("Found datasource with no jdbc sub-element (in datasource with group-name ${datasourceNode.attribute("group-name")})")
-        }
+        //不实现
 
         return this
     }

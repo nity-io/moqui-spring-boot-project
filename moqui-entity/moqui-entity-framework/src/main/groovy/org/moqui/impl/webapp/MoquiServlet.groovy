@@ -20,7 +20,6 @@ import org.moqui.context.ArtifactAuthorizationException
 import org.moqui.context.NotificationMessage
 import org.moqui.impl.context.ExecutionContextFactoryImpl
 import org.moqui.impl.context.ExecutionContextImpl
-import org.moqui.impl.screen.ScreenRenderImpl
 import org.moqui.util.MNode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -88,118 +87,6 @@ class MoquiServlet extends HttpServlet {
          *         .rootScreenFromHost(request.getServerName()).screenPath(pathInfo.split("/") as List)
          */
 
-        ScreenRenderImpl sri = null
-        try {
-            ec.initWebFacade(webappName, request, response)
-            ec.web.requestAttributes.put("moquiRequestStartTime", startTime)
-
-            sri = (ScreenRenderImpl) ec.screenFacade.makeRender().saveHistory(true)
-            sri.render(request, response)
-        } catch (AuthenticationRequiredException e) {
-            logger.warn("Web Unauthorized (no authc): " + e.message)
-            sendErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED, "unauthorized", null, e, ecfi, webappName, sri)
-        } catch (ArtifactAuthorizationException e) {
-            // SC_UNAUTHORIZED 401 used when authc/login fails, use SC_FORBIDDEN 403 for authz failures
-            // See ScreenRenderImpl.checkWebappSettings for authc and SC_UNAUTHORIZED handling
-            logger.warn("Web Access Forbidden (no authz): " + e.message)
-            sendErrorResponse(request, response, HttpServletResponse.SC_FORBIDDEN, "forbidden", null, e, ecfi, webappName, sri)
-        } catch (ScreenResourceNotFoundException e) {
-            logger.warn("Web Resource Not Found: " + e.message)
-            sendErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND, "not-found", null, e, ecfi, webappName, sri)
-        } catch (ArtifactTarpitException e) {
-            logger.warn("Web Too Many Requests (tarpit): " + e.message)
-            if (e.getRetryAfterSeconds()) response.addIntHeader("Retry-After", e.getRetryAfterSeconds())
-            // NOTE: there is no constant on HttpServletResponse for 429; see RFC 6585 for details
-            sendErrorResponse(request, response, 429, "too-many", null, e, ecfi, webappName, sri)
-        } catch (Throwable t) {
-            if (ec.message.hasError()) {
-                String errorsString = ec.message.errorsString
-                logger.error(errorsString, t)
-                if ("true".equals(request.getAttribute("moqui.login.error"))) {
-                    sendErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED, "unauthorized",
-                            errorsString, t, ecfi, webappName, sri)
-                } else {
-                    sendErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "internal-error",
-                            errorsString, t, ecfi, webappName, sri)
-                }
-            } else {
-                String tString = t.toString()
-                if (isBrokenPipe(t)) {
-                    logger.error("Internal error processing request: " + tString)
-                } else {
-                    logger.error("Internal error processing request: " + tString, t)
-                }
-                sendErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "internal-error",
-                        null, t, ecfi, webappName, sri)
-            }
-        } finally {
-            /* this is here just for kicks, uncomment to log a list of all artifacts hit/used in the screen render
-            StringBuilder hits = new StringBuilder()
-            hits.append("Artifacts hit in this request: ")
-            for (def aei in ec.artifactExecution.history) hits.append("\n").append(aei)
-            logger.info(hits.toString())
-            */
-
-            // make sure everything is cleaned up
-            ec.destroy()
-        }
-    }
-
-    static void sendErrorResponse(HttpServletRequest request, HttpServletResponse response, int errorCode, String errorType,
-            String message, Throwable origThrowable, ExecutionContextFactoryImpl ecfi, String moquiWebappName, ScreenRenderImpl sri) {
-
-        if (message == null && origThrowable != null) {
-            List<String> msgList = new ArrayList<>(10)
-            Throwable curt = origThrowable
-            while (curt != null) {
-                msgList.add(curt.message)
-                curt = curt.getCause()
-            }
-            int msgListSize = msgList.size()
-            if (msgListSize > 4) msgList = (List<String>) msgList.subList(msgListSize - 4, msgListSize)
-            message = msgList.join(" ")
-        }
-
-        if (ecfi != null && errorCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR && !isBrokenPipe(origThrowable)) {
-            ExecutionContextImpl ec = ecfi.getEci()
-            ec.makeNotificationMessage().topic("WebServletError").type(NotificationMessage.NotificationType.danger)
-                    .title('''Web Error ${errorCode?:''} (${username?:'no user'}) ${path?:''} ${message?:'N/A'}''')
-                    .message([errorCode:errorCode, errorType:errorType, message:message, exception:origThrowable?.toString(),
-                        path:ec.web.getPathInfo(), parameters:ec.web.getRequestParameters(), username:ec.user.username] as Map<String, Object>)
-                    .send()
-        }
-
-        if (ecfi == null) {
-            response.sendError(errorCode, message)
-            return
-        }
-        ExecutionContextImpl ec = ecfi.getEci()
-        String acceptHeader = request.getHeader("Accept")
-        boolean acceptHtml = acceptHeader != null && acceptHeader.contains("text/html")
-        MNode errorScreenNode = acceptHtml ? ecfi.getWebappInfo(moquiWebappName)?.getErrorScreenNode(errorType) : null
-        if (errorScreenNode != null) {
-            try {
-                ec.context.put("errorCode", errorCode)
-                ec.context.put("errorType", errorType)
-                ec.context.put("errorMessage", message)
-                ec.context.put("errorThrowable", origThrowable)
-                String screenPathAttr = errorScreenNode.attribute("screen-path")
-                // NOTE 20180228: this seems to be working fine now and Jetty (at least) is returning the 404/etc responses with the custom HTML body unlike before
-                response.setStatus(errorCode)
-                ec.screen.makeRender().webappName(moquiWebappName).renderMode("html")
-                        .rootScreenFromHost(request.getServerName()).screenPath(Arrays.asList(screenPathAttr.split("/")))
-                        .render(request, response)
-            } catch (Throwable t) {
-                logger.error("Error rendering ${errorType} error screen, sending code ${errorCode} with message: ${message}", t)
-                response.sendError(errorCode, message)
-            }
-        } else {
-            if (ec.web != null) {
-                ec.web.sendError(errorCode, message, origThrowable)
-            } else {
-                response.sendError(errorCode, message)
-            }
-        }
     }
 
     static boolean isBrokenPipe(Throwable throwable) {

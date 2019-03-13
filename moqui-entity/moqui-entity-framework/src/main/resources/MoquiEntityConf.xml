@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- No copyright or license for configuration file, details here are not considered a creative work. -->
+<moqui-conf xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/moqui-conf-2.1.xsd">
+
+    <!-- Settings in this file can be overridden in a component (MoquiConf.xml) and/or runtime conf file that has
+        any of the desired sub-elements. -->
+
+    <!-- Default properties are only set if there is no Java property or environment variable of the same name (or with underscores replaced by dots) -->
+
+    <!-- recommended values: production, dev, test; any code may look at these Java System properties to vary behavior (System.getProperty("instance_purpose")) -->
+    <default-property name="instance_purpose" value="production"/>
+
+    <default-property name="default_locale" value="en_US"/>
+    <default-property name="default_time_zone" value="US/Pacific"/>
+    <default-property name="database_time_zone" value="US/Pacific"/>
+
+    <default-property name="webapp_http_host" value=""/>
+    <default-property name="webapp_http_port" value=""/>
+    <default-property name="webapp_https_port" value=""/>
+    <default-property name="webapp_https_enabled" value="false"/>
+
+    <default-property name="entity_ds_db_conf" value="postgres"/>
+    <default-property name="entity_ds_host" value="localhost"/>
+    <default-property name="entity_ds_port" value="5432"/>
+    <default-property name="entity_ds_database" value="moqui"/>
+    <default-property name="entity_ds_url" value="jdbc:postgresql://127.0.0.1/moqui"/>
+    <default-property name="entity_ds_schema" value=""/>
+    <default-property name="entity_ds_user" value="yeshm"/>
+    <default-property name="entity_ds_password" value="1"/>
+    <default-property name="entity_ds_crypt_pass" value="MoquiDefaultPassword:CHANGEME"/>
+    <default-property name="entity_add_missing_runtime" value=""/>
+    <default-property name="entity_add_missing_startup" value=""/>
+
+</moqui-conf>

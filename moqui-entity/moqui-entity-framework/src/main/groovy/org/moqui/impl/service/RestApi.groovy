@@ -621,15 +621,15 @@ class RestApi {
         }
 
         RestResult runByMethod(List<String> pathList, ExecutionContext ec) {
-            HttpServletRequest request = ec.web.getRequest()
-            String method = request.getMethod().toLowerCase()
-            if ("post".equals(method)) {
-                String ovdMethod = request.getHeader("X-HTTP-Method-Override")
-                if (ovdMethod != null && !ovdMethod.isEmpty()) method = ovdMethod.toLowerCase()
-            }
-            MethodHandler mh = methodMap.get(method)
-            if (mh == null) throw new MethodNotSupportedException("Method ${method} not supported at ${pathList}")
-            return mh.run(pathList, ec)
+//            HttpServletRequest request = ec.web.getRequest()
+//            String method = request.getMethod().toLowerCase()
+//            if ("post".equals(method)) {
+//                String ovdMethod = request.getHeader("X-HTTP-Method-Override")
+//                if (ovdMethod != null && !ovdMethod.isEmpty()) method = ovdMethod.toLowerCase()
+//            }
+//            MethodHandler mh = methodMap.get(method)
+//            if (mh == null) throw new MethodNotSupportedException("Method ${method} not supported at ${pathList}")
+//            return mh.run(pathList, ec)
         }
 
         RestResult visitChildOrRun(List<String> pathList, int pathIndex, ExecutionContextImpl ec) {
@@ -711,8 +711,8 @@ class RestApi {
                 post:ArtifactExecutionInfo.AUTHZA_CREATE, delete:ArtifactExecutionInfo.AUTHZA_DELETE,
                 options:ArtifactExecutionInfo.AUTHZA_VIEW, head:ArtifactExecutionInfo.AUTHZA_VIEW]
         static ArtifactExecutionInfo.AuthzAction getActionFromMethod(ExecutionContext ec) {
-            String method = ec.web.getRequest().getMethod().toLowerCase()
-            return actionByMethodMap.get(method)
+//            String method = ec.web.getRequest().getMethod().toLowerCase()
+//            return actionByMethodMap.get(method)
         }
 
         Map getRamlChildrenMap(Map<String, Object> typesMap) {

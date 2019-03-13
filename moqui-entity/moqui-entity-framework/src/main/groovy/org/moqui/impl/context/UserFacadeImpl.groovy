@@ -19,7 +19,6 @@ import org.moqui.context.AuthenticationRequiredException
 import org.moqui.entity.EntityCondition
 import org.moqui.impl.context.ArtifactExecutionInfoImpl.ArtifactAuthzCheck
 import org.moqui.impl.entity.EntityValueBase
-import org.moqui.impl.screen.ScreenUrlInfo
 import org.moqui.impl.util.MoquiShiroRealm
 import org.moqui.util.MNode
 import org.moqui.util.ObjectUtilities
@@ -139,7 +138,7 @@ class UserFacadeImpl implements UserFacade {
 
         // check for HTTP Basic Authorization for Authentication purposes
         // NOTE: do this even if there is another user logged in, will go on stack
-        Map secureParameters = eci.webImpl != null ? eci.webImpl.getSecureRequestParameters() :
+        Map secureParameters =
                 WebUtilities.simplifyRequestParameters(request, true)
         String authzHeader = request.getHeader("Authorization")
         if (authzHeader != null && authzHeader.length() > 6 && authzHeader.startsWith("Basic ")) {
@@ -176,82 +175,7 @@ class UserFacadeImpl implements UserFacade {
         if (eci.messageFacade.hasError()) request.setAttribute("moqui.login.error", "true")
 
         this.visitId = session.getAttribute("moqui.visitId")
-        // NOTE: only tracking Visitor and Visit if there is a WebFacadeImpl in place
-        if (eci.webImpl != null && !this.visitId && !eci.getSkipStats()) {
-            MNode serverStatsNode = eci.ecfi.getServerStatsNode()
-            ScreenUrlInfo sui = ScreenUrlInfo.getScreenUrlInfo(eci.screenFacade, request)
-            // before doing anything with the visit, etc make sure exists
-            sui.checkExists()
-            boolean isJustContent = sui.fileResourceRef != null
 
-            // handle visitorId and cookie
-            String cookieVisitorId = (String) null
-            if (!isJustContent && !"false".equals(serverStatsNode.attribute('visitor-enabled'))) {
-                Cookie[] cookies = request.getCookies()
-                if (cookies != null) {
-                    for (int i = 0; i < cookies.length; i++) {
-                        if (cookies[i].getName().equals("moqui.visitor")) {
-                            cookieVisitorId = cookies[i].getValue()
-                            break
-                        }
-                    }
-                }
-                if (cookieVisitorId) {
-                    // make sure the Visitor record actually exists, if not act like we got no moqui.visitor cookie
-                    EntityValue visitor = eci.entity.find("moqui.server.Visitor").condition("visitorId", cookieVisitorId).disableAuthz().one()
-                    if (visitor == null) {
-                        logger.info("Got invalid visitorId [${cookieVisitorId}] in moqui.visitor cookie in session [${session.id}], throwing away and making a new one")
-                        cookieVisitorId = null
-                    }
-                }
-                if (!cookieVisitorId) {
-                    // NOTE: disable authz for this call, don't normally want to allow create of Visitor, but this is a special case
-                    Map cvResult = eci.service.sync().name("create", "moqui.server.Visitor")
-                            .parameter("createdDate", getNowTimestamp()).disableAuthz().call()
-                    cookieVisitorId = (String) cvResult?.visitorId
-                    if (logger.traceEnabled) logger.trace("Created new Visitor with ID [${cookieVisitorId}] in session [${session.id}]")
-                }
-                if (cookieVisitorId) {
-                    // whether it existed or not, add it again to keep it fresh; stale cookies get thrown away
-                    Cookie visitorCookie = new Cookie("moqui.visitor", cookieVisitorId)
-                    visitorCookie.setMaxAge(60 * 60 * 24 * 365)
-                    visitorCookie.setPath("/")
-                    visitorCookie.setHttpOnly(true)
-                    response.addCookie(visitorCookie)
-                }
-            }
-            visitorIdInternal = cookieVisitorId
-
-            if (!isJustContent && !"false".equals(serverStatsNode.attribute('visit-enabled'))) {
-                // create and persist Visit
-                String contextPath = session.getServletContext().getContextPath()
-                String webappId = contextPath.length() > 1 ? contextPath.substring(1) : "ROOT"
-                String fullUrl = eci.webImpl.requestUrl
-                fullUrl = (fullUrl.length() > 255) ? fullUrl.substring(0, 255) : fullUrl.toString()
-                Map<String, Object> parameters = new HashMap<String, Object>([sessionId:session.id, webappName:webappId,
-                        fromDate:new Timestamp(session.getCreationTime()),
-                        initialLocale:getLocale().toString(), initialRequest:fullUrl,
-                        initialReferrer:request.getHeader("Referrer")?:"",
-                        initialUserAgent:request.getHeader("User-Agent")?:"",
-                        clientHostName:request.getRemoteHost(), clientUser:request.getRemoteUser()])
-
-                InetAddress address = eci.ecfi.getLocalhostAddress()
-                parameters.serverIpAddress = address?.getHostAddress() ?: "127.0.0.1"
-                parameters.serverHostName = address?.getHostName() ?: "localhost"
-                parameters.clientIpAddress = clientIpInternal
-                if (cookieVisitorId) parameters.visitorId = cookieVisitorId
-
-                // NOTE: disable authz for this call, don't normally want to allow create of Visit, but this is special case
-                Map visitResult = eci.service.sync().name("create", "moqui.server.Visit").parameters(parameters)
-                        .disableAuthz().call()
-                // put visitId in session as "moqui.visitId"
-                if (visitResult) {
-                    session.setAttribute("moqui.visitId", visitResult.visitId)
-                    this.visitId = visitResult.visitId
-                    if (logger.traceEnabled) logger.trace("Created new Visit with ID [${this.visitId}] in session [${session.id}]")
-                }
-            }
-        }
     }
     void initFromHandshakeRequest(HandshakeRequest request) {
         this.session = (HttpSession) request.getHttpSession()
@@ -626,8 +550,6 @@ class UserFacadeImpl implements UserFacade {
         }
 
         UsernamePasswordToken token = new UsernamePasswordToken(username, password, true)
-        // if there is a web session invalidate it so there is a new session for the login (prevent Session Fixation attacks)
-        if (eci.getWebImpl() != null) session = eci.getWebImpl().makeNewSession()
 
         Subject loginSubject = makeEmptySubject()
         try {
@@ -638,11 +560,6 @@ class UserFacadeImpl implements UserFacade {
             // just in case there is already a user authenticated push onto a stack to remember
             pushUserSubject(loginSubject)
 
-            // after successful login trigger the after-login actions
-            if (eci.getWebImpl() != null) {
-                eci.getWebImpl().runAfterLoginActions()
-                eci.getWebImpl().getRequest().setAttribute("moqui.request.authenticated", "true")
-            }
         } catch (AuthenticationException ae) {
             // others to consider handling differently (these all inherit from AuthenticationException):
             //     UnknownAccountException, IncorrectCredentialsException, ExpiredCredentialsException,
@@ -671,11 +588,6 @@ class UserFacadeImpl implements UserFacade {
             // just in case there is already a user authenticated push onto a stack to remember
             pushUserSubject(loginSubject)
 
-            // after successful login trigger the after-login actions
-            if (eci.getWebImpl() != null) {
-                eci.getWebImpl().runAfterLoginActions()
-                eci.getWebImpl().getRequest().setAttribute("moqui.request.authenticated", "true")
-            }
         } catch (AuthenticationException ae) {
             eci.messageFacade.addError(ae.message)
             return false
@@ -691,8 +603,6 @@ class UserFacadeImpl implements UserFacade {
     }
 
     @Override void logoutUser() {
-        // before logout trigger the before-logout actions
-        if (eci.getWebImpl() != null) eci.getWebImpl().runBeforeLogoutActions()
 
         String userId = getUserId()
 

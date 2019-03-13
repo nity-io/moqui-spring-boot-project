@@ -14,15 +14,15 @@
 package org.moqui.impl.context;
 
 import groovy.lang.Closure;
+import org.moqui.cache.context.CacheFacade;
+import org.moqui.cache.impl.context.CacheFacadeImpl;
 import org.moqui.context.*;
 import org.moqui.entity.EntityFacade;
 import org.moqui.entity.EntityFind;
 import org.moqui.entity.EntityList;
 import org.moqui.entity.EntityValue;
 import org.moqui.impl.entity.EntityFacadeImpl;
-import org.moqui.impl.screen.ScreenFacadeImpl;
 import org.moqui.impl.service.ServiceFacadeImpl;
-import org.moqui.screen.ScreenFacade;
 import org.moqui.service.ServiceFacade;
 import org.moqui.util.ContextBinding;
 import org.moqui.util.ContextStack;
@@ -46,9 +46,6 @@ public class ExecutionContextImpl implements ExecutionContext {
 
     private EntityFacadeImpl activeEntityFacade;
 
-    private WebFacade webFacade = (WebFacade) null;
-    private WebFacadeImpl webFacadeImpl = (WebFacadeImpl) null;
-
     public final UserFacadeImpl userFacade;
     public final MessageFacadeImpl messageFacade;
     public final ArtifactExecutionFacadeImpl artifactExecutionFacade;
@@ -58,7 +55,6 @@ public class ExecutionContextImpl implements ExecutionContext {
     public final CacheFacadeImpl cacheFacade;
     public final LoggerFacadeImpl loggerFacade;
     public final ResourceFacadeImpl resourceFacade;
-    public final ScreenFacadeImpl screenFacade;
     public final ServiceFacadeImpl serviceFacade;
     public final TransactionFacadeImpl transactionFacade;
 
@@ -88,14 +84,12 @@ public class ExecutionContextImpl implements ExecutionContext {
         cacheFacade = ecfi.cacheFacade;
         loggerFacade = ecfi.loggerFacade;
         resourceFacade = ecfi.resourceFacade;
-        screenFacade = ecfi.screenFacade;
         serviceFacade = ecfi.serviceFacade;
         transactionFacade = ecfi.transactionFacade;
 
         if (cacheFacade == null) throw new IllegalStateException("cacheFacade was null");
         if (loggerFacade == null) throw new IllegalStateException("loggerFacade was null");
         if (resourceFacade == null) throw new IllegalStateException("resourceFacade was null");
-        if (screenFacade == null) throw new IllegalStateException("screenFacade was null");
         if (serviceFacade == null) throw new IllegalStateException("serviceFacade was null");
         if (transactionFacade == null) throw new IllegalStateException("transactionFacade was null");
 
@@ -123,9 +117,6 @@ public class ExecutionContextImpl implements ExecutionContext {
         return ecfi.getTool(toolName, instanceClass, parameters);
     }
 
-    @Override public @Nullable WebFacade getWeb() { return webFacade; }
-    public @Nullable WebFacadeImpl getWebImpl() { return webFacadeImpl; }
-
     @Override public @Nonnull UserFacade getUser() { return userFacade; }
     @Override public @Nonnull MessageFacade getMessage() { return messageFacade; }
     @Override public @Nonnull ArtifactExecutionFacade getArtifactExecution() { return artifactExecutionFacade; }
@@ -139,7 +130,6 @@ public class ExecutionContextImpl implements ExecutionContext {
     public @Nonnull EntityFacadeImpl getEntityFacade() { return activeEntityFacade; }
 
     @Override public @Nonnull ServiceFacade getService() { return serviceFacade; }
-    @Override public @Nonnull ScreenFacade getScreen() { return screenFacade; }
 
     @Override public @Nonnull NotificationMessage makeNotificationMessage() { return new NotificationMessageImpl(ecfi); }
 
@@ -166,39 +156,10 @@ public class ExecutionContextImpl implements ExecutionContext {
         return nmList;
     }
 
-    @Override
-    public void initWebFacade(@Nonnull String webappMoquiName, @Nonnull HttpServletRequest request, @Nonnull HttpServletResponse response) {
-        WebFacadeImpl wfi = new WebFacadeImpl(webappMoquiName, request, response, this);
-        webFacade = wfi;
-        webFacadeImpl = wfi;
-
-        // now that we have the webFacade in place we can do init UserFacade
-        userFacade.initFromHttpRequest(request, response);
-        // for convenience (and more consistent code in screen actions, services, etc) add all requestParameters to the context
-        contextStack.putAll(webFacade.getRequestParameters());
-        // this is the beginning of a request, so trigger before-request actions
-        wfi.runBeforeRequestActions();
-
-        String userId = userFacade.getUserId();
-        if (userId != null && !userId.isEmpty()) MDC.put("moqui_userId", userId);
-        String visitorId = userFacade.getVisitorId();
-        if (visitorId != null && !visitorId.isEmpty()) MDC.put("moqui_visitorId", visitorId);
-
-        if (loggerDirect.isTraceEnabled()) loggerDirect.trace("ExecutionContextImpl WebFacade initialized");
-    }
-
-    /** Meant to be used to set a test stub that implements the WebFacade interface */
-    public void setWebFacade(WebFacade wf) {
-        webFacade = wf;
-        if (wf instanceof WebFacadeImpl) webFacadeImpl = (WebFacadeImpl) wf;
-        contextStack.putAll(webFacade.getRequestParameters());
-    }
-
     public boolean getSkipStats() {
         if (skipStats != null) return skipStats;
         String skipStatsCond = ecfi.skipStatsCond;
         Map<String, Object> skipParms = new HashMap<>();
-        if (webFacade != null) skipParms.put("pathInfo", webFacade.getPathInfo());
         skipStats = (skipStatsCond != null && !skipStatsCond.isEmpty()) && ecfi.resourceFacade.condition(skipStatsCond, null, skipParms);
         return skipStats;
     }
@@ -216,9 +177,6 @@ public class ExecutionContextImpl implements ExecutionContext {
 
     @Override
     public void destroy() {
-        // if webFacade exists this is the end of a request, so trigger after-request actions
-        if (webFacadeImpl != null) webFacadeImpl.runAfterRequestActions();
-
         // make sure there are no transactions open, if any commit them all now
         ecfi.transactionFacade.destroyAllInThread();
         // clean up resources, like JCR session

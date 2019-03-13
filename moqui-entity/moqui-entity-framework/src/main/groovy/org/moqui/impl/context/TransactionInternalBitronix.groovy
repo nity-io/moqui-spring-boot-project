@@ -48,7 +48,7 @@ class TransactionInternalBitronix implements TransactionInternal {
 
         // NOTE: see the bitronix-default-config.properties file for more config
 
-        btm = TransactionManagerServices.getTransactionManager()
+        btm = this.ecfi.transactionManager
         this.ut = btm
         this.tm = btm
 
