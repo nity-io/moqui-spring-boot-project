@@ -17,6 +17,8 @@
 package io.nity.moqui.cache.sample.service;
 
 import org.moqui.cache.context.CacheFacade;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +31,8 @@ import java.util.Date;
 @Service
 public class SampleService {
 
+    private static final Logger logger = LoggerFactory.getLogger(SampleService.class);
+
     @Autowired
     private CacheFacade cacheFacade;
 
@@ -38,17 +42,18 @@ public class SampleService {
         String helloContent = null;
 
         if((helloContent = helloCache.get("hello")) != null){
-            System.out.println("cache hit");
+            logger.info("cache hit");
         }else{
-            System.out.println("cache init");
+            logger.info("cache init");
             helloCache.put("hello", "hello world");
+
         }
 
-        System.out.println(helloContent);
-        System.out.println(cacheFacade.toString());
+        logger.info(helloContent);
+        logger.info(cacheFacade.toString());
 
         long cost = System.currentTimeMillis() - operateTime.getTime();
-        System.out.println("sayHello cost:"+cost);
+        logger.info("sayHello cost:"+cost);
 
         return "hello world";
     }
