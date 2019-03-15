@@ -152,12 +152,9 @@ dependencies {
     compile module('org.apache.shiro:shiro-core:1.4.0') // Apache 2.0
     compile module('org.apache.shiro:shiro-web:1.4.0') // Apache 2.0
 
-    // SLF4J, Log4j 2 (note Log4j 2 is used by various libraries, best not to replace it even if mostly possible with SLF4J)
+    // SLF4J
     compile 'org.slf4j:slf4j-api:1.7.25'
-    // Log4J version note: limited by embedded ElasticSearch through 6.2.4 still uses Log4J 2.9.1
-    compile 'org.apache.logging.log4j:log4j-core:2.9.1'
-    compile 'org.apache.logging.log4j:log4j-api:2.9.1'
-    runtime 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
+    compile 'ch.qos.logback:logback-classic:1.2.3'
 
     // SubEtha SMTP (module as depends on old javax.mail location; also uses SLF4J, activation included elsewhere)
     compile module('org.subethamail:subethasmtp:3.1.7')

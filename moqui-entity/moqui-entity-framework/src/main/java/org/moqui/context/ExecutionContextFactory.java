@@ -88,6 +88,4 @@ public interface ExecutionContextFactory {
 
     void registerNotificationMessageListener(@Nonnull NotificationMessageListener nml);
 
-    void registerLogEventSubscriber(@Nonnull LogEventSubscriber subscriber);
-    List<LogEventSubscriber> getLogEventSubscribers();
 }
