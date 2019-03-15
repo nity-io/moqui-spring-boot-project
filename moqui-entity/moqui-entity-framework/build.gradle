@@ -63,7 +63,7 @@ tasks.withType(JavaCompile) { options.compilerArgs << "-proc:none" }
 tasks.withType(GroovyCompile) { options.compilerArgs << "-proc:none" }
 
 dependencies {
-    compile project(':moqui-entity:moqui-entity-util')
+    compile project(':moqui-util')
     compile project(':moqui-cache:moqui-cache-spring-boot-starter')
 
     // Groovy
