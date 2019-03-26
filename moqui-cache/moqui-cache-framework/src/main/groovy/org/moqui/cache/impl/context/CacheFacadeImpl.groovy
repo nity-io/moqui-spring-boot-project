@@ -107,8 +107,8 @@ public class CacheFacadeImpl implements CacheFacade {
     }
 
     @Override
-    MCache getLocalCache(String cacheName) {
-        return getCacheInternal(cacheName, "local").unwrap(MCache.class)
+    Cache getLocalCache(String cacheName) {
+        return getCacheInternal(cacheName, "local").unwrap(Cache.class)
     }
     @Override
     Cache getDistributedCache(String cacheName) {
@@ -219,6 +219,11 @@ public class CacheFacadeImpl implements CacheFacade {
                 cacheManager = localCacheManagerInternal
             } else if ("distributed".equals(cacheType)) {
                 cacheManager = getDistCacheManager()
+                newCache = cacheManager.getCache(cacheName)
+
+                if(newCache != null){
+                    return newCache
+                }
             } else {
                 throw new IllegalArgumentException("Cache type ${cacheType} not supported")
             }
@@ -280,6 +285,11 @@ public class CacheFacadeImpl implements CacheFacade {
                 storeByValue = false
             } else if ("distributed".equals(defaultCacheType)) {
                 cacheManager = getDistCacheManager()
+                newCache = cacheManager.getCache(cacheName)
+
+                if(newCache != null){
+                    return newCache
+                }
                 storeByValue = true
             } else {
                 throw new IllegalArgumentException("Default cache type ${defaultCacheType} not supported")
