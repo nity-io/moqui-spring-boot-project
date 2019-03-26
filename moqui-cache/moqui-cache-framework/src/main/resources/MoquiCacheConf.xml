@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- No copyright or license for configuration file, details here are not considered a creative work. -->
+<moqui-conf xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/moqui-conf-2.1.xsd">
+
+    <!-- Settings in this file can be overridden in a component (MoquiConf.xml) and/or runtime conf file that has
+        any of the desired sub-elements. -->
+
+    <!-- Default properties are only set if there is no Java property or environment variable of the same name (or with underscores replaced by dots) -->
+
+    <tools empty-db-load="seed,seed-initial,install" worker-queue="65535" worker-pool-core="4" worker-pool-max="16" worker-pool-alive="60">
+        <tool-factory class="org.moqui.cache.impl.tools.MCacheToolFactory" init-priority="03" disabled="false"/>
+    </tools>
+
+    <cache-list warm-on-start="true" local-factory="MCache" distributed-factory="MCache">
+
+    </cache-list>
+
+</moqui-conf>
