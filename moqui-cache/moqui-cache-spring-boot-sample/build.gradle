@@ -27,8 +27,16 @@ dependencies {
     implementation('org.springframework.boot:spring-boot-starter-web') 
     
     implementation 'org.codehaus.groovy:groovy'
+
+    implementation 'org.apache.ignite:ignite-core:2.7.0'
+    implementation 'org.apache.ignite:ignite-spring:2.7.0'
     
+    // ========== test dependencies ==========
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    
+    // spock-core depends on groovy-all but we are including selected groovy modules, so don't get its dependencies
+    testCompile module('org.spockframework:spock-core:1.1-groovy-2.4') // Apache 2.0
+    testCompile 'junit:junit:4.12' // Apache 2.0
 }
 
 springBoot {

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- No copyright or license for configuration file, details here are not considered a creative work. -->
+<moqui-conf xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/moqui-conf-2.1.xsd">
+
+    <tools empty-db-load="seed,seed-initial,install" worker-queue="65535" worker-pool-core="4" worker-pool-max="16" worker-pool-alive="60">
+        <tool-factory class="org.moqui.impl.tools.MCacheToolFactory" init-priority="03" disabled="true"/>
+        <!-- Apache Commons JCS, an alternative for distributed caches (cannot be used as local cache as requires Serializable keys/values just like Hazelcast) -->
+         <!--<tool-factory class="org.moqui.cache.impl.tools.JCSCacheToolFactory" init-priority="09" disabled="false"/>-->
+        <!--Apache Ignite distributed caches-->
+         <tool-factory class="io.nity.moqui.cache.impl.tools.IgniteCacheToolFactory" init-priority="09" disabled="false"/>
+    </tools>
+
+    <cache-list warm-on-start="true" local-factory="MCache" distributed-factory="IgniteCache">
+        <cache name="sample.local.max-elements." max-elements="5" key-type="String" value-type="String"/>
+        <cache name="sample.local.expire-time-idle." max-elements="5" key-type="String" value-type="String" expire-time-idle="10"/>
+
+        <cache name="sample.distributed." type="distributed" max-elements="20000" key-type="String" value-type="String"/>
+    </cache-list>
+
+</moqui-conf>
