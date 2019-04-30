@@ -28,7 +28,6 @@ repositories {
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
-archivesBaseName = 'moqui'
 
 dependencies {
     compile project(':moqui-cache:moqui-cache-spring-boot-starter')
