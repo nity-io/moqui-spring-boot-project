@@ -17,7 +17,7 @@ import groovy.transform.CompileStatic
 import org.moqui.cache.MoquiCache
 import org.moqui.cache.context.CacheFacade
 import org.moqui.cache.context.ExecutionContextFactory
-import org.moqui.cache.context.ToolFactory
+import org.moqui.context.ToolFactory
 import org.moqui.util.CollectionUtilities
 import org.moqui.util.MNode
 import org.moqui.util.SystemBinding
@@ -66,6 +66,8 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         // init the configuration (merge from component and runtime conf files)
         confXmlRoot = initConfig(baseConfigNode, runtimeConfXmlRoot)
 
+        MoquiCache.init(this)
+
         preFacadeInit()
 
         // this init order is important as some facades will use others
@@ -77,8 +79,6 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
 //        logger.info("Resource Facade initialized")
 
         postFacadeInit()
-
-        MoquiCache.setCache(cacheFacade)
 
         logger.info("Execution Context Factory initialized in ${(System.currentTimeMillis() - initStartTime)/1000} seconds")
     }
@@ -237,7 +237,7 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
             logger.info("Loading ToolFactory with class: ${tfClass}")
             try {
                 ToolFactory tf = (ToolFactory) Thread.currentThread().getContextClassLoader().loadClass(tfClass).newInstance()
-                tf.preFacadeInit(this)
+                tf.preFacadeInit()
                 toolFactoryMap.put(tf.getName(), tf)
             } catch (Throwable t) {
                 logger.error("Error loading ToolFactory with class ${tfClass}", t)
@@ -250,7 +250,7 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         for (ToolFactory tf in toolFactoryMap.values()) {
             logger.info("Initializing ToolFactory: ${tf.getName()}")
             try {
-                tf.init(this)
+                tf.init()
             } catch (Throwable t) {
                 logger.error("Error initializing ToolFactory ${tf.getName()}", t)
             }

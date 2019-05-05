@@ -13,8 +13,9 @@
  */
 package org.moqui.cache.impl.tools;
 
+import org.moqui.cache.MoquiCache;
 import org.moqui.cache.context.ExecutionContextFactory;
-import org.moqui.cache.context.ToolFactory;
+import org.moqui.context.ToolFactory;
 import org.moqui.jcache.MCacheManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,11 +36,13 @@ public class MCacheToolFactory implements ToolFactory<CacheManager> {
 
     @Override
     public String getName() { return TOOL_NAME; }
+
     @Override
-    public void init(ExecutionContextFactory ecf) { }
+    public void init() { }
+
     @Override
-    public void preFacadeInit(ExecutionContextFactory ecf) {
-        this.ecf = ecf;
+    public void preFacadeInit() {
+        this.ecf = MoquiCache.getExecutionContextFactory();
         cacheManager = MCacheManager.getMCacheManager();
     }
 

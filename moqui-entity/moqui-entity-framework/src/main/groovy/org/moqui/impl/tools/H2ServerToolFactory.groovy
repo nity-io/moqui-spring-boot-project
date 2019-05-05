@@ -15,6 +15,7 @@ package org.moqui.impl.tools
 
 import groovy.transform.CompileStatic
 import org.h2.tools.Server
+import org.moqui.MoquiEntity
 import org.moqui.context.ExecutionContextFactory
 import org.moqui.context.ToolFactory
 import org.moqui.impl.context.ExecutionContextFactoryImpl
@@ -40,8 +41,8 @@ class H2ServerToolFactory implements ToolFactory<Server> {
     H2ServerToolFactory() { }
 
     @Override
-    void init(ExecutionContextFactory ecf) {
-        this.ecfi = (ExecutionContextFactoryImpl) ecf
+    void init() {
+        this.ecfi = (ExecutionContextFactoryImpl) MoquiEntity.getExecutionContextFactory();
 
         for (MNode datasourceNode in ecfi.getConfXmlRoot().first("entity-facade").children("datasource")) {
             String dbConfName = datasourceNode.attribute("database-conf-name")

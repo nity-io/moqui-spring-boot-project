@@ -17,8 +17,9 @@
 package io.nity.moqui.cache.impl.tools
 
 import groovy.transform.CompileStatic
+import org.moqui.cache.MoquiCache
 import org.moqui.cache.context.ExecutionContextFactory
-import org.moqui.cache.context.ToolFactory
+import org.moqui.context.ToolFactory
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -45,11 +46,13 @@ class IgniteCacheToolFactory implements ToolFactory<CacheManager> {
 
     @Override
     String getName() { return TOOL_NAME }
+
     @Override
-    void init(ExecutionContextFactory ecf) { }
+    void init() { }
+
     @Override
-    void preFacadeInit(ExecutionContextFactory ecf) {
-        this.ecf = ecf
+    void preFacadeInit() {
+        this.ecf = MoquiCache.getExecutionContextFactory()
         ClassLoader cl = Thread.currentThread().getContextClassLoader()
         CachingProvider providerInternal = Caching.getCachingProvider("org.apache.ignite.cache.CachingProvider", cl)
         URL cmUrl = cl.getResource("example-persistent-store.xml")

@@ -13,6 +13,8 @@
  */
 package org.moqui.cache.context;
 
+import org.moqui.context.ToolFactory;
+
 import javax.annotation.Nonnull;
 
 /**

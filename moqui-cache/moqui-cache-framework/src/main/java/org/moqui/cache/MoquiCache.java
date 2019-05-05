@@ -1,19 +1,24 @@
 package org.moqui.cache;
 
 import org.moqui.cache.context.CacheFacade;
+import org.moqui.cache.context.ExecutionContextFactory;
 
 /**
- * CacheFacade Holder
+ * MoquiCache Framework Resource Holder
  */
 public class MoquiCache {
 
-    private static CacheFacade cacheFacade = null;
+    private static ExecutionContextFactory ecf = null;
 
-    public static void setCache(CacheFacade cacheFacade) {
-        MoquiCache.cacheFacade = cacheFacade;
+    public static void init(ExecutionContextFactory ecf) {
+        MoquiCache.ecf = ecf;
+    }
+
+    public static ExecutionContextFactory getExecutionContextFactory() {
+        return ecf;
     }
 
     public static CacheFacade getCache() {
-        return cacheFacade;
+        return ecf.getCache();
     }
 }

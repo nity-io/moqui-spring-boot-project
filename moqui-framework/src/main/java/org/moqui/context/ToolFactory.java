@@ -26,11 +26,11 @@ public interface ToolFactory<V> {
     }
 
     /** Initialize the underlying tool and if the instance is a singleton also the instance. */
-    default void init(ExecutionContextFactory ecf) { }
+    default void init() { }
 
     /** Rarely used, initialize before Moqui Facades are initialized; useful for tools that ResourceReference,
      * ScriptRunner, TemplateRenderer, ServiceRunner, etc implementations depend on. */
-    default void preFacadeInit(ExecutionContextFactory ecf) { }
+    default void preFacadeInit() { }
 
     /** Called by ExecutionContextFactory.getTool() to get an instance object for this tool.
      * May be created for each call or a singleton.

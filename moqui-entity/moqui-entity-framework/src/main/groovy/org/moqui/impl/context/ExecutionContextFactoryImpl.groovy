@@ -26,6 +26,7 @@ import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.tools.GroovyClass
 import org.moqui.BaseException
 import org.moqui.Moqui
+import org.moqui.MoquiEntity
 import org.moqui.cache.context.CacheFacade
 import org.moqui.cache.impl.context.CacheFacadeImpl
 import org.moqui.context.*
@@ -219,6 +220,8 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         initComponents(baseConfigNode)
         // init the configuration (merge from component and runtime conf files)
         confXmlRoot = initConfig(baseConfigNode, runtimeConfXmlRoot)
+
+        MoquiEntity.init(this);
 
         workerPool = makeWorkerPool()
         preFacadeInit()
@@ -474,7 +477,7 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
             logger.info("Loading ToolFactory with class: ${tfClass}")
             try {
                 ToolFactory tf = (ToolFactory) Thread.currentThread().getContextClassLoader().loadClass(tfClass).newInstance()
-                tf.preFacadeInit(this)
+                tf.preFacadeInit()
                 toolFactoryMap.put(tf.getName(), tf)
             } catch (Throwable t) {
                 logger.error("Error loading ToolFactory with class ${tfClass}", t)
@@ -490,7 +493,7 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         for (ToolFactory tf in toolFactoryMap.values()) {
             logger.info("Initializing ToolFactory: ${tf.getName()}")
             try {
-                tf.init(this)
+                tf.init()
             } catch (Throwable t) {
                 logger.error("Error initializing ToolFactory ${tf.getName()}", t)
             }
