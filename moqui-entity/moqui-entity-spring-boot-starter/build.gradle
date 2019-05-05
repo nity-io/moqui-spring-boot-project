@@ -22,7 +22,6 @@ apply plugin: 'groovy'
 
 // NOTE: packages should match group, name, version found at https://bintray.com/bintray/jcenter
 repositories {
-    flatDir name: 'localLib', dirs: projectDir.absolutePath + '/lib'
     jcenter() // http://jcenter.bintray.com
 }
 
@@ -37,6 +36,7 @@ dependencies {
     compile 'org.codehaus.groovy:groovy:2.4.15' // Apache 2.0
 
     compile (group: 'org.springframework.boot', name: 'spring-boot-starter-jdbc', version: springBootVersion )
+    implementation "org.springframework.boot:spring-boot-starter-jta-bitronix:${springBootVersion}"
 
     compileOnly("org.springframework.boot:spring-boot-configuration-processor:${springBootVersion}")
    
