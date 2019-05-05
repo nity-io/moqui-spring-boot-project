@@ -110,6 +110,9 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         if (defaultConfUrl == null) throw new IllegalArgumentException("Could not find MoquiDefaultConf.xml file on the classpath")
         MNode newConfigXmlRoot = MNode.parse(defaultConfUrl.toString(), defaultConfUrl.newInputStream())
 
+        // just merge the component configuration, needed before component init is done
+        mergeConfigComponentNodes(newConfigXmlRoot, runtimeConfXmlRoot)
+
         return newConfigXmlRoot
     }
 
@@ -212,6 +215,10 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
 
 
     private void preFacadeInit() {
+        if ("dev".equals(System.getProperty("instance_purpose")) || "test".equals(System.getProperty("instance_purpose"))) {
+            // log the current configuration debugging/reference
+            logger.info("Actual Conf:\n" + confXmlRoot.toString())
+        }
 
         // Load ToolFactory implementations from tools.tool-factory elements, run preFacadeInit() methods
         ArrayList<Map<String, String>> toolFactoryAttrsList = new ArrayList<>()

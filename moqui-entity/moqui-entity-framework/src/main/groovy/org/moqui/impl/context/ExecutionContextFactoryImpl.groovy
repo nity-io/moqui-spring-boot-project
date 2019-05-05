@@ -158,8 +158,8 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         this.dataSource = dataSource
         this.transactionManager = transactionManager
 
-        String fileName = "MoquiEntityConf.xml";
-        URL confUrl = this.class.getClassLoader().getResource(fileName)
+        runtimeConfPath = "MoquiEntityConf.xml";
+        URL confUrl = this.class.getClassLoader().getResource(runtimeConfPath)
         if (confUrl == null) throw new IllegalArgumentException("Could not find MoquiEntityConf.xml file on the classpath")
 
         // initialize all configuration, get various conf files merged and load components
@@ -313,6 +313,14 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         logger.info("Merging runtime configuration at ${runtimeConfPath}")
         mergeConfigNodes(baseConfigNode, runtimeConfXmlRoot)
 
+        String projectConfigFile = "MoquiConf.xml";
+        URL confUrl = this.class.getClassLoader().getResource(projectConfigFile);
+        if (confUrl != null){
+            logger.info("Merging MoquiConf.xml")
+            MNode compXmlNode = MNode.parse(confUrl.toString(), confUrl.newInputStream())
+            mergeConfigNodes(baseConfigNode, compXmlNode)
+        }
+
         // set default System properties now that all is merged
         for (MNode defPropNode in baseConfigNode.children("default-property")) {
             String propName = defPropNode.attribute("name")
@@ -408,16 +416,9 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
     }
 
     private void preFacadeInit() {
-        // save the current configuration in a file for debugging/reference
-        File confSaveFile = new File(runtimePath + "/log/MoquiActualConf.xml")
-        try {
-            if (confSaveFile.exists()) confSaveFile.delete()
-            if (!confSaveFile.parentFile.exists()) confSaveFile.parentFile.mkdirs()
-            FileWriter fw = new FileWriter(confSaveFile)
-            fw.write(confXmlRoot.toString())
-            fw.close()
-        } catch (Exception e) {
-            logger.warn("Could not save ${confSaveFile.absolutePath} file: ${e.toString()}")
+        if ("dev".equals(System.getProperty("instance_purpose")) || "test".equals(System.getProperty("instance_purpose"))) {
+            // log the current configuration debugging/reference
+            logger.info("Actual Conf:\n" + confXmlRoot.toString())
         }
 
         // get localhost address for ongoing use
