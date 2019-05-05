@@ -14,10 +14,10 @@
 package org.moqui.cache.impl.context
 
 import groovy.transform.CompileStatic
+import org.moqui.cache.MoquiCache
 import org.moqui.cache.context.CacheFacade
 import org.moqui.cache.context.ExecutionContextFactory
 import org.moqui.cache.context.ToolFactory
-import org.moqui.cache.impl.context.CacheFacadeImpl
 import org.moqui.util.CollectionUtilities
 import org.moqui.util.MNode
 import org.moqui.util.SystemBinding
@@ -77,6 +77,8 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
 //        logger.info("Resource Facade initialized")
 
         postFacadeInit()
+
+        MoquiCache.setCache(cacheFacade)
 
         logger.info("Execution Context Factory initialized in ${(System.currentTimeMillis() - initStartTime)/1000} seconds")
     }
