@@ -643,6 +643,7 @@
         <component-dir location="mantle"/>
         <component-dir location="component"/>
         <component-dir location="ecomponent"/>
+        <component name="spring-boot-application" location="."/>
         <!-- Here are some examples of explicitly loading the example component in different ways: -->
         <!-- <component name="example" location="component/example"/> -->
         <!-- <component name="example" location="content://main/component/example"/> -->

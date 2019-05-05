@@ -1205,7 +1205,9 @@ class ExecutionContextFactoryImpl implements ExecutionContextFactory {
             int lastSlashIndex = location.lastIndexOf('/')
             if (lastSlashIndex < 0) {
                 // if this happens the component directory is directly under the runtime directory, so prefix loc with that
-                location = ecfi.runtimePath + '/' + location
+                if(ecfi.runtimePath) {
+                    location = ecfi.runtimePath + '/' + location
+                }
                 lastSlashIndex = location.lastIndexOf('/')
             }
             // set the default component name, version
