@@ -28,7 +28,6 @@ import org.moqui.impl.context.UserFacadeImpl
 import org.moqui.impl.entity.EntityDefinition
 import org.moqui.impl.entity.FieldInfo
 import org.moqui.impl.util.RestSchemaUtil
-import org.moqui.jcache.MCache
 import org.moqui.util.CollectionUtilities
 import org.moqui.util.MNode
 import org.moqui.util.SystemBinding
@@ -44,7 +43,7 @@ class RestApi {
     protected final static Logger logger = LoggerFactory.getLogger(RestApi.class)
 
     @SuppressWarnings("GrFinalVariableAccess") protected final ExecutionContextFactoryImpl ecfi
-    @SuppressWarnings("GrFinalVariableAccess") final MCache<String, ResourceNode> rootResourceCache
+    @SuppressWarnings("GrFinalVariableAccess") final Cache<String, ResourceNode> rootResourceCache
 
     RestApi(ExecutionContextFactoryImpl ecfi) {
         this.ecfi = ecfi
@@ -97,7 +96,13 @@ class RestApi {
     List<ResourceNode> getFreshRootResources() {
         loadRootResourceNode(null)
         List<ResourceNode> rootList = new ArrayList<>()
-        for (Cache.Entry<String, ResourceNode> entry in rootResourceCache.getEntryList()) rootList.add(entry.getValue())
+
+        Iterator<Cache.Entry<String, ResourceNode>> iterator = rootResourceCache.iterator()
+        Cache.Entry<String, ResourceNode> entry
+        while ((entry = iterator.next())!=null){
+            rootList.add(entry.getValue())
+        }
+
         return rootList
     }
 
