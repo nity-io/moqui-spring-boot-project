@@ -1,0 +1,25 @@
+rootProject.name = 'moqui-spring-boot-project'
+
+include ":moqui-util"
+include ":moqui-framework"
+
+include "moqui-cache:moqui-cache-framework"
+include "moqui-cache:moqui-cache-spring-boot-starter"
+include "moqui-cache:moqui-cache-spring-boot-sample"
+
+include "moqui-entity:moqui-entity-util"
+include "moqui-entity:moqui-entity-framework"
+include "moqui-entity:moqui-entity-spring-boot-starter"
+include "moqui-entity:moqui-entity-spring-boot-sample"
+
+project(':moqui-util').projectDir = new File('moqui-util')
+project(':moqui-framework').projectDir = new File('moqui-framework')
+
+project(':moqui-cache:moqui-cache-framework').projectDir = new File('moqui-cache/moqui-cache-framework')
+project(':moqui-cache:moqui-cache-spring-boot-starter').projectDir = new File('moqui-cache/moqui-cache-spring-boot-starter')
+project(':moqui-cache:moqui-cache-spring-boot-sample').projectDir = new File('moqui-cache/moqui-cache-spring-boot-sample')
+
+project(':moqui-entity:moqui-entity-util').projectDir = new File('moqui-entity/moqui-entity-util')
+project(':moqui-entity:moqui-entity-framework').projectDir = new File('moqui-entity/moqui-entity-framework')
+project(':moqui-entity:moqui-entity-spring-boot-starter').projectDir = new File('moqui-entity/moqui-entity-spring-boot-starter')
+project(':moqui-entity:moqui-entity-spring-boot-sample').projectDir = new File('moqui-entity/moqui-entity-spring-boot-sample')
