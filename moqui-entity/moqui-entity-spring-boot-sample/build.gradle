@@ -22,6 +22,20 @@ repositories {
     jcenter() // http://jcenter.bintray.com
 }
 
+sourceSets {
+    script {
+        resources {
+            srcDirs = ['script']
+        }
+        compileClasspath += sourceSets.main.runtimeClasspath
+    }
+    service {
+        resources {
+            srcDirs = ['service']
+        }
+    }
+}
+
 dependencies {
     compile 'org.postgresql:postgresql:42.2.2'
     
