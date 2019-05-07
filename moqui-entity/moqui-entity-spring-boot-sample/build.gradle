@@ -36,6 +36,10 @@ sourceSets {
     }
 }
 
+tasks.getByName("processResources") {
+    from fileTree(dir: projectDir.absolutePath, includes: ['data/**', 'entity/**', 'script/**', 'screen/**', 'service/**', 'template/**']) // 'xsd/**'
+}
+
 dependencies {
     compile 'org.postgresql:postgresql:42.2.2'
     
