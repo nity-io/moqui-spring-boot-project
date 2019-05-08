@@ -62,6 +62,13 @@ class GroovyScriptRunner implements ScriptRunner {
         Class gc = (Class) scriptGroovyLocationCache.get(location)
         if (gc == null) {
             String groovyText = ecfi.resourceFacade.getLocationText(location, false)
+
+            if (groovyText == null) {
+                if (!location.startsWith("classpath://")) {
+                    groovyText = ecfi.resourceFacade.getLocationText("classpath://" + location, false)
+                }
+            }
+
             String instancePurpose = System.getProperty("instance_purpose");
             if ("dev".equals(instancePurpose) || "test".equals(instancePurpose)) {
                 gc = ecfi.compileGroovy(groovyText, location)
