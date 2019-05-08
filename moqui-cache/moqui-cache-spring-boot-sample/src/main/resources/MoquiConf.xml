@@ -8,7 +8,7 @@
 
     <cache-list warm-on-start="true" local-factory="MCache" distributed-factory="IgniteCache">
         <cache name="sample.local.max-elements." max-elements="5" key-type="String" value-type="String"/>
-        <cache name="sample.local.expire-time-idle." max-elements="5" key-type="String" value-type="String" expire-time-idle="10"/>
+        <cache name="sample.local.expire-time-idle." key-type="String" value-type="String" expire-time-idle="10"/>
 
         <cache name="sample.distributed." type="distributed" max-elements="20000" key-type="String" value-type="String"/>
     </cache-list>
