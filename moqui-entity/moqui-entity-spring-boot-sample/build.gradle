@@ -13,6 +13,7 @@ buildscript {
 apply plugin: 'groovy'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
+apply from: projectDir.getAbsolutePath() + "/utils.gradle"
 
 group = 'com.example'
 version = '0.0.1-SNAPSHOT'
@@ -37,6 +38,10 @@ sourceSets {
 }
 
 tasks.getByName("processResources") {
+    doFirst {
+        checkEntityConf()
+    }
+
     from fileTree(dir: projectDir.absolutePath, includes: ['data/**', 'entity/**', 'script/**', 'screen/**', 'service/**', 'template/**']) // 'xsd/**'
 }
 

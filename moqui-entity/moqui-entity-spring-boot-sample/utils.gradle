@@ -1,0 +1,35 @@
+/**
+ * 检查entity文件是否都配置到MoquiConf.xml
+ * @return
+ */
+def checkEntityConf() {
+    println 'checkEntityConf...'
+
+    File entityDir = new File("entity")
+    File moquiConfFile = new File("src/main/resources/MoquiConf.xml")
+
+    if (!moquiConfFile.exists()) {
+        return
+    }
+
+    String moquiConfText = moquiConfFile.text
+
+    if (!entityDir.exists()) {
+        return
+    }
+
+    if (entityDir.isFile()) {
+        throw new RuntimeException("entity不是目录")
+    }
+
+    String[] fileNameList = entityDir.list()
+    fileNameList.each {
+        if (!moquiConfText.contains("classpath://entity/${it}")) {
+            throw new RuntimeException("${it}没有配置到MoquiConf.xml")
+        }
+    }
+}
+
+ext {
+    checkEntityConf = this.&checkEntityConf
+}
