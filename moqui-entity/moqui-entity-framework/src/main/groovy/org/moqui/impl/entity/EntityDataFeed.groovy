@@ -18,7 +18,7 @@ import org.moqui.entity.EntityCondition
 import org.moqui.entity.EntityException
 import org.moqui.entity.EntityList
 import org.moqui.entity.EntityValue
-import org.moqui.impl.context.ExecutionContextFactoryImpl
+import org.moqui.impl.context.EntityExecutionContextFactoryImpl
 import org.moqui.impl.entity.EntityJavaUtil.RelationshipInfo
 
 import javax.cache.Cache
@@ -383,7 +383,7 @@ class EntityDataFeed {
     static class DataFeedSynchronization implements Synchronization {
         protected final static Logger logger = LoggerFactory.getLogger(DataFeedSynchronization.class)
 
-        protected ExecutionContextFactoryImpl ecfi
+        protected EntityExecutionContextFactoryImpl ecfi
         protected EntityDataFeed edf
 
         protected Transaction tx = null
@@ -438,11 +438,11 @@ class EntityDataFeed {
     }
 
     static class FeedRunnable implements Runnable {
-        private ExecutionContextFactoryImpl ecfi
+        private EntityExecutionContextFactoryImpl ecfi
         private EntityDataFeed edf
         private EntityList feedValues
         private Set<String> allDataDocumentIds
-        FeedRunnable(ExecutionContextFactoryImpl ecfi, EntityDataFeed edf, EntityList feedValues, Set<String> allDataDocumentIds) {
+        FeedRunnable(EntityExecutionContextFactoryImpl ecfi, EntityDataFeed edf, EntityList feedValues, Set<String> allDataDocumentIds) {
             this.ecfi = ecfi
             this.edf = edf
             this.allDataDocumentIds = allDataDocumentIds
@@ -463,14 +463,14 @@ class EntityDataFeed {
                 for (String dataDocumentId in allDataDocumentIds) {
                     EntityValue dataDocument = null
                     EntityList dataDocumentFieldList = null
-                    boolean alreadyDisabled = ecfi.getEci().artifactExecutionFacade.disableAuthz()
+                    boolean alreadyDisabled = ecfi.getEci().getArtifactExecution().disableAuthz()
                     try {
                         // for each DataDocument go through feedValues and get the primary entity's PK field(s) for each
                         dataDocument = efi.fastFindOne("moqui.entity.document.DataDocument", true, false, dataDocumentId)
                         dataDocumentFieldList =
                             dataDocument.findRelated("moqui.entity.document.DataDocumentField", null, null, true, false)
                     } finally {
-                        if (!alreadyDisabled) ecfi.getEci().artifactExecutionFacade.enableAuthz()
+                        if (!alreadyDisabled) ecfi.getEci().getArtifactExecution().enableAuthz()
                     }
 
                     String primaryEntityName = dataDocument.primaryEntityName
@@ -546,7 +546,7 @@ class EntityDataFeed {
 
                                         String backwardRelName = backwardRelInfo.relationshipName
                                         List<EntityValueBase> currentRelValueList = []
-                                        alreadyDisabled = efi.ecfi.getEci().artifactExecutionFacade.disableAuthz()
+                                        alreadyDisabled = efi.ecfi.getEci().getArtifactExecution().disableAuthz()
                                         try {
                                             for (EntityValueBase prevRelValue in prevRelValueList) {
                                                 EntityList backwardRelValueList = prevRelValue.findRelated(backwardRelName, null, null, false, false)
@@ -554,7 +554,7 @@ class EntityDataFeed {
                                                     currentRelValueList.add((EntityValueBase) backwardRelValue)
                                             }
                                         } finally {
-                                            if (!alreadyDisabled) efi.ecfi.getEci().artifactExecutionFacade.enableAuthz()
+                                            if (!alreadyDisabled) efi.ecfi.getEci().getArtifactExecution().enableAuthz()
                                         }
 
                                         prevRelName = currentRelName
@@ -621,7 +621,7 @@ class EntityDataFeed {
                         condition = efi.getConditionFactory().makeCondition(condList, EntityCondition.OR)
                     }
 
-                    alreadyDisabled = efi.ecfi.getEci().artifactExecutionFacade.disableAuthz()
+                    alreadyDisabled = efi.ecfi.getEci().getArtifactExecution().disableAuthz()
                     try {
                         // generate the document with the extra condition and send it to all DataFeeds
                         //     associated with the DataDocument
@@ -639,16 +639,16 @@ class EntityDataFeed {
                             for (EntityValue dataFeedAndDocument in dataFeedAndDocumentList) {
                                 // NOTE: this is a sync call so authz disabled is preserved; it is in its own thread
                                 //     so user/etc are not inherited here
-                                ecfi.serviceFacade.sync().name((String) dataFeedAndDocument.feedReceiveServiceName)
-                                        .parameters([dataFeedId:dataFeedAndDocument.dataFeedId, feedStamp:feedStamp,
-                                        documentList:documents]).call()
+//                                ecfi.serviceFacade.sync().name((String) dataFeedAndDocument.feedReceiveServiceName)
+//                                        .parameters([dataFeedId:dataFeedAndDocument.dataFeedId, feedStamp:feedStamp,
+//                                        documentList:documents]).call()
                             }
                         } else {
                             // this is pretty common, some operation done on a record that doesn't match the conditions for the feed
                             if (logger.isTraceEnabled()) logger.trace("In DataFeed no documents found for dataDocumentId [${dataDocumentId}]")
                         }
                     } finally {
-                        if (!alreadyDisabled) efi.ecfi.getEci().artifactExecutionFacade.enableAuthz()
+                        if (!alreadyDisabled) efi.ecfi.getEci().getArtifactExecution().enableAuthz()
                     }
                 }
             } catch (Throwable t) {

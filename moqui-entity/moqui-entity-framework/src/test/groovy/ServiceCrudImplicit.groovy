@@ -16,7 +16,7 @@ import spock.lang.*
 
 import org.moqui.context.ExecutionContext
 import org.moqui.entity.EntityValue
-import org.moqui.Moqui
+import org.moqui.MoquiEntity
 
 class ServiceCrudImplicit extends Specification {
     @Shared
@@ -24,7 +24,7 @@ class ServiceCrudImplicit extends Specification {
 
     def setupSpec() {
         // init the framework, get the ec
-        ec = Moqui.getExecutionContext()
+        ec = MoquiEntity.getExecutionContext()
     }
 
     def cleanupSpec() {

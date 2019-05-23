@@ -14,11 +14,11 @@
 package org.moqui.impl.entity
 
 import groovy.transform.CompileStatic
-import org.moqui.impl.actions.XmlAction
-import org.moqui.impl.context.ExecutionContextFactoryImpl
+import org.moqui.context.ExecutionContext
 import org.moqui.entity.EntityFind
 import org.moqui.entity.EntityValue
-import org.moqui.impl.context.ExecutionContextImpl
+import org.moqui.impl.actions.XmlAction
+import org.moqui.impl.context.EntityExecutionContextFactoryImpl
 import org.moqui.util.MNode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -27,14 +27,14 @@ import org.slf4j.LoggerFactory
 class EntityEcaRule {
     protected final static Logger logger = LoggerFactory.getLogger(EntityEcaRule.class)
 
-    protected ExecutionContextFactoryImpl ecfi
+    protected EntityExecutionContextFactoryImpl ecfi
     protected MNode eecaNode
     protected String location
 
     protected XmlAction condition = null
     protected XmlAction actions = null
 
-    EntityEcaRule(ExecutionContextFactoryImpl ecfi, MNode eecaNode, String location) {
+    EntityEcaRule(EntityExecutionContextFactoryImpl ecfi, MNode eecaNode, String location) {
         this.ecfi = ecfi
         this.eecaNode = eecaNode
         this.location = location
@@ -42,18 +42,18 @@ class EntityEcaRule {
         // prep condition
         if (eecaNode.hasChild("condition") && eecaNode.first("condition").children) {
             // the script is effectively the first child of the condition element
-            condition = new XmlAction(ecfi, eecaNode.first("condition").children.get(0), location + ".condition")
+            condition = new XmlAction(ecfi.resourceFacade.getEcfi(), eecaNode.first("condition").children.get(0), location + ".condition")
         }
         // prep actions
         if (eecaNode.hasChild("actions")) {
-            actions = new XmlAction(ecfi, eecaNode.first("actions"), null) // was location + ".actions" but not unique!
+            actions = new XmlAction(ecfi.resourceFacade.getEcfi(), eecaNode.first("actions"), null) // was location + ".actions" but not unique!
         }
     }
 
     String getEntityName() { return eecaNode.attribute("entity") }
     MNode getEecaNode() { return eecaNode }
 
-    void runIfMatches(String entityName, Map fieldValues, String operation, boolean before, ExecutionContextImpl ec) {
+    void runIfMatches(String entityName, Map fieldValues, String operation, boolean before, ExecutionContext ec) {
         // see if we match this event and should run
 
         // check this first since it is the most common disqualifier
@@ -61,7 +61,7 @@ class EntityEcaRule {
         if (!"true".equals(eecaNode.attribute(attrName))) return
 
         if (!entityName.equals(eecaNode.attribute("entity"))) return
-        if (ec.messageFacade.hasError() && !"true".equals(eecaNode.attribute("run-on-error"))) return
+        if (ec.getMessage().hasError() && !"true".equals(eecaNode.attribute("run-on-error"))) return
 
         EntityValue curValue = null
 
@@ -114,11 +114,11 @@ class EntityEcaRule {
 
         try {
             Map<String, Object> contextMap = new HashMap<>()
-            ec.contextStack.push(contextMap)
-            ec.contextStack.putAll(fieldValues)
-            ec.contextStack.put("entityValue", fieldValues)
-            ec.contextStack.put("originalValue", originalValue)
-            ec.contextStack.put("eecaOperation", operation)
+            ec.getContext().push(contextMap)
+            ec.getContext().putAll(fieldValues)
+            ec.getContext().put("entityValue", fieldValues)
+            ec.getContext().put("originalValue", originalValue)
+            ec.getContext().put("eecaOperation", operation)
 
             // run the condition and if passes run the actions
             boolean conditionPassed = true
@@ -147,7 +147,7 @@ class EntityEcaRule {
                 }
             }
         } finally {
-            ec.contextStack.pop()
+            ec.getContext().pop()
         }
     }
 

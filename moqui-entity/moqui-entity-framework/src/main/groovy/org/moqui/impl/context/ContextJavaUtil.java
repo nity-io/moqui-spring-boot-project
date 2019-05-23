@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import groovy.lang.GString;
 import org.moqui.context.ArtifactExecutionInfo;
+import org.moqui.context.ExecutionContext;
 import org.moqui.entity.EntityFind;
 import org.moqui.entity.EntityList;
 import org.moqui.entity.EntityValue;
@@ -185,7 +186,7 @@ public class ContextJavaUtil {
             if (runningTime > maxTimeMillis) maxTimeMillis = runningTime;
         }
 
-        EntityValue makeAhbValue(ExecutionContextFactoryImpl ecfi, Timestamp binEndDateTime) {
+        EntityValue makeAhbValue(EntityExecutionContextFactoryImpl ecfi, Timestamp binEndDateTime) {
             EntityValueBase ahb = (EntityValueBase) ecfi.entityFacade.makeValue("moqui.server.ArtifactHitBin");
             ahb.putNoCheck("artifactType", statsInfo.artifactTypeEnum.name());
             ahb.putNoCheck("artifactSubType", statsInfo.artifactSubType);
@@ -206,7 +207,7 @@ public class ContextJavaUtil {
         }
     }
 
-    public static class ArtifactHitInfo {
+    public static class ArtifactHitInfoEntity {
         String visitId, userId;
         boolean isSlowHit;
         ArtifactExecutionInfo.ArtifactType artifactTypeEnum;
@@ -218,11 +219,11 @@ public class ContextJavaUtil {
         String errorMessage = null;
         String requestUrl = null, referrerUrl = null;
 
-        ArtifactHitInfo(ExecutionContextImpl eci, boolean isSlowHit, ArtifactExecutionInfo.ArtifactType artifactTypeEnum,
-                        String artifactSubType, String artifactName, long startTime, double runningTimeMillis,
-                        Map<String, Object> parameters, Long outputSize) {
-            visitId = eci.userFacade.getVisitId();
-            userId = eci.userFacade.getUserId();
+        ArtifactHitInfoEntity(ExecutionContext eci, boolean isSlowHit, ArtifactExecutionInfo.ArtifactType artifactTypeEnum,
+                              String artifactSubType, String artifactName, long startTime, double runningTimeMillis,
+                              Map<String, Object> parameters, Long outputSize) {
+            visitId = eci.getUser().getVisitId();
+            userId = eci.getUser().getUserId();
             this.isSlowHit = isSlowHit;
             this.artifactTypeEnum = artifactTypeEnum;
             this.artifactSubType = artifactSubType;
@@ -238,7 +239,7 @@ public class ContextJavaUtil {
                 this.errorMessage = errorMessage.toString();
             }
         }
-        EntityValue makeAhiValue(ExecutionContextFactoryImpl ecfi) {
+        EntityValue makeAhiValue(EntityExecutionContextFactoryImpl ecfi) {
             EntityValueBase ahp = (EntityValueBase) ecfi.entityFacade.makeValue("moqui.server.ArtifactHit");
             ahp.putNoCheck("visitId", visitId);
             ahp.putNoCheck("userId", userId);

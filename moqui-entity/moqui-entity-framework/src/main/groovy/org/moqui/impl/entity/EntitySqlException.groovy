@@ -13,7 +13,7 @@
  */
 package org.moqui.impl.entity
 
-import org.moqui.Moqui
+import org.moqui.MoquiEntity
 import org.moqui.context.ExecutionContext
 import org.moqui.entity.EntityException
 import java.sql.SQLException
@@ -70,7 +70,7 @@ class EntitySqlException extends EntityException {
             // localize and append
             if (msg != null) {
                 try {
-                    ExecutionContext ec = Moqui.getExecutionContext()
+                    ExecutionContext ec = MoquiEntity.getExecutionContext()
                     // TODO: need a different approach for localization, getting from DB may not be reliable after an error and may cause other errors (especially with Postgres and the auto rollback only)
                     // overrideMessage += ': ' + ec.l10n.localize(msg)
                     overrideMessage += ': ' + msg

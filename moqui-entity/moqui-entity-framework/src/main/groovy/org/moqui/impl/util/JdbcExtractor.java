@@ -14,8 +14,8 @@
 package org.moqui.impl.util;
 
 import org.moqui.BaseException;
+import org.moqui.context.EntityExecutionContextFactory;
 import org.moqui.etl.SimpleEtl;
-import org.moqui.impl.context.ExecutionContextImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,11 +31,11 @@ public class JdbcExtractor implements SimpleEtl.Extractor {
     protected final static Logger logger = LoggerFactory.getLogger(JdbcExtractor.class);
 
     SimpleEtl etl = null;
-    private ExecutionContextImpl eci;
+    private EntityExecutionContextFactory ecf;
     private String recordType, selectSql;
     private Map<String, String> confMap;
 
-    public JdbcExtractor(ExecutionContextImpl eci) { this.eci = eci; }
+    public JdbcExtractor(EntityExecutionContextFactory ecf) { this.ecf = ecf; }
 
     public JdbcExtractor setSqlInfo(String recordType, String selectSql) {
         this.recordType = recordType;
@@ -64,7 +64,7 @@ public class JdbcExtractor implements SimpleEtl.Extractor {
         Statement stmt = null;
         ResultSet rs = null;
         try {
-            xacon = eci.getEntityFacade().getConfConnection(confMap);
+            xacon = ecf.getEntity().getConfConnection(confMap);
             con = xacon.getConnection();
             stmt = con.createStatement();
             rs = stmt.executeQuery(selectSql);

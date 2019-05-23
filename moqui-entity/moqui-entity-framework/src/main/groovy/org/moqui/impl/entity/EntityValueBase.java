@@ -14,15 +14,17 @@
 package org.moqui.impl.entity;
 
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
-
-import org.moqui.Moqui;
+import org.moqui.MoquiEntity;
+import org.moqui.context.ArtifactExecutionFacade;
 import org.moqui.context.ArtifactExecutionInfo;
 import org.moqui.context.ExecutionContext;
 import org.moqui.entity.EntityException;
 import org.moqui.entity.EntityFind;
 import org.moqui.entity.EntityList;
 import org.moqui.entity.EntityValue;
-import org.moqui.impl.context.*;
+import org.moqui.impl.context.ArtifactExecutionInfoImpl;
+import org.moqui.impl.context.EntityExecutionContextFactoryImpl;
+import org.moqui.impl.context.TransactionCache;
 import org.moqui.util.CollectionUtilities;
 import org.moqui.util.MNode;
 import org.moqui.util.ObjectUtilities;
@@ -40,11 +42,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.Writer;
 import java.math.BigDecimal;
-import java.sql.SQLException;
-import java.sql.Connection;
 import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.*;
 
 public abstract class EntityValueBase implements EntityValue {
@@ -100,13 +99,13 @@ public abstract class EntityValueBase implements EntityValue {
     protected EntityFacadeImpl getEntityFacadeImpl() {
         // handle null after deserialize; this requires a static reference in Moqui.java or we'll get an error
         if (efiTransient == null) {
-            ExecutionContextFactoryImpl ecfi = (ExecutionContextFactoryImpl) Moqui.getExecutionContextFactory();
+            EntityExecutionContextFactoryImpl ecfi = (EntityExecutionContextFactoryImpl) MoquiEntity.getExecutionContextFactory();
             if (ecfi == null) throw new EntityException("No ExecutionContextFactory found, cannot get EntityFacade for new EVB for entity " + entityName);
             efiTransient = ecfi.entityFacade;
         }
         return efiTransient;
     }
-    private TransactionCache getTxCache(ExecutionContextFactoryImpl ecfi) {
+    private TransactionCache getTxCache(EntityExecutionContextFactoryImpl ecfi) {
         if (txCacheInternal == null) txCacheInternal = ecfi.transactionFacade.getTransactionCache();
         return txCacheInternal;
     }
@@ -214,7 +213,7 @@ public abstract class EntityValueBase implements EntityValue {
 
         // if enabled use moqui.basic.LocalizedEntityField for any localized fields
         if (fieldInfo.enableLocalization) {
-            Locale locale = getEntityFacadeImpl().ecfi.getEci().userFacade.getLocale();
+            Locale locale = getEntityFacadeImpl().ecfi.getEci().getUser().getLocale();
             String localeStr = locale != null ? locale.toString() : null;
             if (localeStr != null) {
                 Object internalValue = valueMapInternal.get(name);
@@ -389,7 +388,7 @@ public abstract class EntityValueBase implements EntityValue {
     }
     @Override public EntityValue setString(String name, String value) {
         // this will do a field name check
-        ExecutionContextImpl eci = getEntityFacadeImpl().ecfi.getEci();
+        ExecutionContext eci = getEntityFacadeImpl().ecfi.getEci();
         Object converted = getEntityDefinition().convertFieldString(name, value, eci);
         putNoCheck(name, converted);
         return this;
@@ -578,10 +577,10 @@ public abstract class EntityValueBase implements EntityValue {
     @Override
     public EntityValue store() { return createOrUpdate(); }
 
-    private void handleAuditLog(boolean isUpdate, Map oldValues, EntityDefinition ed, ExecutionContextImpl ec) {
-        if ((isUpdate && oldValues == null) || !ed.entityInfo.needsAuditLog || ec.artifactExecutionFacade.entityAuditLogDisabled()) return;
+    private void handleAuditLog(boolean isUpdate, Map oldValues, EntityDefinition ed, ExecutionContext ec) {
+        if ((isUpdate && oldValues == null) || !ed.entityInfo.needsAuditLog || ec.getArtifactExecution().entityAuditLogDisabled()) return;
 
-        Timestamp nowTimestamp = ec.userFacade.getNowTimestamp();
+        Timestamp nowTimestamp = ec.getUser().getNowTimestamp();
 
         Map<String, Object> pksValueMap = new HashMap<>();
         addThreeFieldPkValues(pksValueMap, ed);
@@ -622,13 +621,13 @@ public abstract class EntityValueBase implements EntityValue {
 
                 // check for a changeReason
                 String changeReason = null;
-                Object changeReasonObj = ec.contextStack.getByString(fieldName.concat("_changeReason"));
+                Object changeReasonObj = ec.getContext().getByString(fieldName.concat("_changeReason"));
                 if (changeReasonObj != null) {
                     changeReason = changeReasonObj.toString();
                     if (changeReason.isEmpty()) changeReason = null;
                 }
 
-                String stackNameString = ec.artifactExecutionFacade.getStackNameString();
+                String stackNameString = ec.getArtifactExecution().getStackNameString();
                 if (stackNameString.length() > 4000) stackNameString = stackNameString.substring(0, 4000);
                 LinkedHashMap<String, Object> parms = new LinkedHashMap<>();
                 parms.put("changedEntityName", getEntityName());
@@ -645,8 +644,10 @@ public abstract class EntityValueBase implements EntityValue {
                 // logger.warn("TOREMOVE: in handleAuditLog for [${ed.entityName}.${fieldName}] value=[${value}], oldValue=[${oldValue}], oldValues=[${oldValues}]", new Exception("AuditLog location"))
 
                 // NOTE: if this is changed to async the time zone on nowTimestamp gets messed up (user's time zone lost)
-                getEntityFacadeImpl().ecfi.serviceFacade.sync().name("create#moqui.entity.EntityAuditLog")
-                        .parameters(parms).disableAuthz().call();
+                getEntityFacadeImpl().makeValue("sample.SampleEntity")
+                        .setAll(parms)
+                        .setSequencedIdPrimary()
+                        .create();
             }
         }
     }
@@ -838,7 +839,7 @@ public abstract class EntityValueBase implements EntityValue {
     @Override
     public boolean checkFks(boolean insertDummy) {
         boolean noneMissing = true;
-        ExecutionContextImpl ec = getEntityFacadeImpl().ecfi.getEci();
+        ExecutionContext ec = getEntityFacadeImpl().ecfi.getEci();
         for (EntityJavaUtil.RelationshipInfo relInfo : getEntityDefinition().getRelationshipsInfo(false)) {
             if (!"one".equals(relInfo.type)) continue;
 
@@ -1229,8 +1230,8 @@ public abstract class EntityValueBase implements EntityValue {
     @Override public abstract EntityValue cloneValue();
     public abstract EntityValue cloneDbValue(boolean getOld);
 
-    private boolean doDataFeed(ExecutionContextImpl ec) {
-        if (ec.artifactExecutionFacade.entityDataFeedDisabled()) return false;
+    private boolean doDataFeed(ExecutionContext ec) {
+        if (ec.getArtifactExecution().entityDataFeedDisabled()) return false;
         // skip ArtifactHitBin, causes funny recursion
         return !"moqui.server.ArtifactHitBin".equals(entityName);
     }
@@ -1258,7 +1259,7 @@ public abstract class EntityValueBase implements EntityValue {
             if (dbValueMap != null) ec.getContext().push(dbValueMap);
             ec.getContext().push(valueMapInternal);
             try {
-                Object newVal = ec.getResource().expression(defaultStr, "");
+                Object newVal = getEntityFacadeImpl().ecfi.getResource().expression(defaultStr, "");
                 if (newVal != null) valueMapInternal.put(fieldName, newVal);
             } finally {
                 ec.getContext().pop();
@@ -1267,13 +1268,13 @@ public abstract class EntityValueBase implements EntityValue {
         }
     }
 
-    private String makeErrorMsg(String baseMsg, String expandMsg, EntityDefinition ed, ExecutionContextImpl ec) {
+    private String makeErrorMsg(String baseMsg, String expandMsg, EntityDefinition ed, ExecutionContext ec) {
         Map<String, Object> errorContext = new HashMap<>();
         errorContext.put("entityName", ed.getEntityName()); errorContext.put("primaryKeys", getPrimaryKeys());
         String errorMessage = null;
         // TODO: need a different approach for localization, getting from DB may not be reliable after an error and may cause other errors (especially with Postgres and the auto rollback only)
         if (false && !"LocalizedMessage".equals(ed.getEntityName())) {
-            try { errorMessage = ec.resourceFacade.expand(expandMsg, null, errorContext); }
+            try { errorMessage = getEntityFacadeImpl().ecfi.resourceFacade.expand(expandMsg, null, errorContext); }
             catch (Throwable t) { logger.trace("Error expanding error message", t); }
         }
         if (errorMessage == null) errorMessage = baseMsg + " " + ed.getEntityName() + " " + getPrimaryKeys();
@@ -1285,9 +1286,9 @@ public abstract class EntityValueBase implements EntityValue {
         final EntityDefinition ed = getEntityDefinition();
         final EntityJavaUtil.EntityInfo entityInfo = ed.entityInfo;
         final EntityFacadeImpl efi = getEntityFacadeImpl();
-        final ExecutionContextFactoryImpl ecfi = efi.ecfi;
-        final ExecutionContextImpl ec = ecfi.getEci();
-        final ArtifactExecutionFacadeImpl aefi = ec.artifactExecutionFacade;
+        final EntityExecutionContextFactoryImpl ecfi = efi.ecfi;
+        final ExecutionContext ec = ecfi.getEci();
+        final ArtifactExecutionFacade aefi = ec.getArtifactExecution();
 
         // check/set defaults
         if (entityInfo.hasFieldDefaults) checkSetFieldDefaults(ed, ec, null);
@@ -1359,9 +1360,9 @@ public abstract class EntityValueBase implements EntityValue {
         final EntityDefinition ed = getEntityDefinition();
         final EntityJavaUtil.EntityInfo entityInfo = ed.entityInfo;
         final EntityFacadeImpl efi = getEntityFacadeImpl();
-        final ExecutionContextFactoryImpl ecfi = efi.ecfi;
-        final ExecutionContextImpl ec = ecfi.getEci();
-        final ArtifactExecutionFacadeImpl aefi = ec.artifactExecutionFacade;
+        final EntityExecutionContextFactoryImpl ecfi = efi.ecfi;
+        final ExecutionContext ec = ecfi.getEci();
+        final ArtifactExecutionFacade aefi = ec.getArtifactExecution();
         final TransactionCache curTxCache = getTxCache(ecfi);
         final boolean optimisticLock = entityInfo.optimisticLock;
         final boolean hasFieldDefaults = entityInfo.hasFieldDefaults;
@@ -1517,9 +1518,9 @@ public abstract class EntityValueBase implements EntityValue {
         final EntityDefinition ed = getEntityDefinition();
         final EntityJavaUtil.EntityInfo entityInfo = ed.entityInfo;
         final EntityFacadeImpl efi = getEntityFacadeImpl();
-        final ExecutionContextFactoryImpl ecfi = efi.ecfi;
-        final ExecutionContextImpl ec = ecfi.getEci();
-        final ArtifactExecutionFacadeImpl aefi = ec.artifactExecutionFacade;
+        final EntityExecutionContextFactoryImpl ecfi = efi.ecfi;
+        final ExecutionContext ec = ecfi.getEci();
+        final ArtifactExecutionFacade aefi = ec.getArtifactExecution();
 
         // NOTE: this is create-only on the entity, ignores setting on fields (only considered in update)
         if (entityInfo.createOnly) throw new EntityException("Entity [" + getEntityName() + "] is create-only (immutable), cannot be deleted.");
@@ -1563,9 +1564,9 @@ public abstract class EntityValueBase implements EntityValue {
         final EntityDefinition ed = getEntityDefinition();
         final EntityJavaUtil.EntityInfo entityInfo = ed.entityInfo;
         final EntityFacadeImpl efi = getEntityFacadeImpl();
-        final ExecutionContextFactoryImpl ecfi = efi.ecfi;
-        final ExecutionContextImpl ec = ecfi.getEci();
-        final ArtifactExecutionFacadeImpl aefi = ec.artifactExecutionFacade;
+        final EntityExecutionContextFactoryImpl ecfi = efi.ecfi;
+        final ExecutionContext ec = ecfi.getEci();
+        final ArtifactExecutionFacade aefi = ec.getArtifactExecution();
 
         List<String> pkFieldList = ed.getPkFieldNames();
         if (pkFieldList.size() == 0) {

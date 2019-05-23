@@ -15,7 +15,7 @@
 import spock.lang.*
 
 import org.moqui.context.ExecutionContext
-import org.moqui.Moqui
+import org.moqui.MoquiEntity
 import org.moqui.resource.ResourceReference
 
 class ResourceFacadeTests extends Specification {
@@ -24,7 +24,7 @@ class ResourceFacadeTests extends Specification {
 
     def setupSpec() {
         // init the framework, get the ec
-        ec = Moqui.getExecutionContext()
+        ec = MoquiEntity.getExecutionContext()
     }
 
     def cleanupSpec() {

@@ -17,6 +17,7 @@
 package io.nity.moqui.entity.sample.web;
 
 import io.nity.moqui.entity.sample.service.SampleService;
+import org.moqui.MoquiEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +30,8 @@ public class SampleController {
 
     @RequestMapping(value = {"/createSample"})
     public String greet() {
+        MoquiEntity.getExecutionContextFactory().getEntity();
+
 
         String result = sampleService.createSample();
 

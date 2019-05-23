@@ -14,7 +14,12 @@
 package org.moqui.impl.entity;
 
 import org.moqui.BaseArtifactException;
+import org.moqui.entity.EntityCondition;
 import org.moqui.entity.EntityException;
+import org.moqui.entity.EntityList;
+import org.moqui.entity.EntityValue;
+import org.moqui.impl.context.ArtifactExecutionFacadeImpl;
+import org.moqui.impl.context.ArtifactExecutionInfoImpl;
 import org.moqui.impl.entity.condition.EntityConditionImplBase;
 import org.moqui.impl.entity.EntityJavaUtil.FieldOrderOptions;
 import org.moqui.util.MNode;
@@ -23,10 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 public class EntityFindBuilder extends EntityQueryBuilder {
     protected static final Logger logger = LoggerFactory.getLogger(EntityFindBuilder.class);
@@ -188,7 +190,7 @@ public class EntityFindBuilder extends EntityQueryBuilder {
             // logger.warn("============== entityAliasUsedSet=${entityAliasUsedSet} for entity ${localEntityDefinition.entityName}\nfieldUsedSet=${fieldUsedSet}\n fieldInfoList=${fieldInfoList}\n orderByFields=${entityFindBase.orderByFields}")
 
             // at this point entityAliasUsedSet is finalized so do authz filter if needed
-            ArrayList<EntityConditionImplBase> filterCondList = efi.ecfi.getEci().artifactExecutionFacade.filterFindForUser(localEntityDefinition, entityAliasUsedSet);
+            ArrayList<EntityConditionImplBase> filterCondList = filterFindForUser(localEntityDefinition, entityAliasUsedSet);
             outWhereCondition = EntityConditionFactoryImpl.addAndListToCondition(outWhereCondition, filterCondList);
 
             // keep a set of all aliases in the join so far and if the left entity alias isn't there yet, and this
@@ -340,7 +342,7 @@ public class EntityFindBuilder extends EntityQueryBuilder {
             }
         } else {
             // not a view-entity so do authz filter now if needed
-            ArrayList<EntityConditionImplBase> filterCondList = efi.ecfi.getEci().artifactExecutionFacade.filterFindForUser(localEntityDefinition, null);
+            ArrayList<EntityConditionImplBase> filterCondList = filterFindForUser(localEntityDefinition, null);
             outWhereCondition = EntityConditionFactoryImpl.addAndListToCondition(outWhereCondition, filterCondList);
 
             localBuilder.append(localEntityDefinition.getFullTableName());
@@ -691,5 +693,39 @@ public class EntityFindBuilder extends EntityQueryBuilder {
         }
 
         return ps;
+    }
+
+    static class AuthzFilterInfo {
+        String entityFilterSetId;
+        EntityValue entityFilter;
+        Map<String, ArrayList<MNode>> memberFieldAliases;
+        AuthzFilterInfo(String entityFilterSetId, EntityValue entityFilter, Map<String, ArrayList<MNode>> memberFieldAliases) {
+            this.entityFilterSetId = entityFilterSetId;
+            this.entityFilter = entityFilter;
+            this.memberFieldAliases = memberFieldAliases;
+        }
+    }
+    ArrayList<AuthzFilterInfo> getFindFiltersForUser(String findEntityName) {
+        EntityDefinition findEd = efi.getEntityDefinition(findEntityName);
+        return getFindFiltersForUser(findEd, null);
+    }
+    ArrayList<AuthzFilterInfo> getFindFiltersForUser(EntityDefinition findEd, Set<String> entityAliasUsedSet) {
+        // do nothing if authz disabled
+        if (efi.ecfi.getEci().getArtifactExecution().getAuthzDisabled()) return null;
+
+        //todo
+
+        return null;
+    }
+
+    private ArrayList<EntityConditionImplBase> filterFindForUser(EntityDefinition findEd, Set<String> entityAliasUsedSet) {
+        ArrayList<AuthzFilterInfo> authzFilterInfoList = getFindFiltersForUser(findEd, entityAliasUsedSet);
+        if (authzFilterInfoList == null) return null;
+        int authzFilterInfoListSize = authzFilterInfoList.size();
+        if (authzFilterInfoListSize == 0) return null;
+
+        //todo
+
+        return null;
     }
 }

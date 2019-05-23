@@ -13,7 +13,7 @@
  */
 
 
-import org.moqui.Moqui
+import org.moqui.MoquiEntity
 import org.moqui.context.ExecutionContext
 import org.moqui.jcache.MCache
 import spock.lang.*
@@ -26,7 +26,7 @@ class CacheFacadeTests extends Specification {
 
     def setupSpec() {
         // init the framework, get the ec
-        ec = Moqui.getExecutionContext()
+        ec = MoquiEntity.getExecutionContext()
         testCache = ec.cache.getLocalCache("CacheFacadeTests")
     }
 

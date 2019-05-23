@@ -15,9 +15,7 @@
 import spock.lang.*
 
 import org.moqui.context.ExecutionContext
-import org.moqui.Moqui
-import org.moqui.entity.EntityValue
-import java.sql.Timestamp
+import org.moqui.MoquiEntity
 
 class MessageFacadeTests extends Specification {
     @Shared
@@ -25,7 +23,7 @@ class MessageFacadeTests extends Specification {
 
     def setupSpec() {
         // init the framework, get the ec
-        ec = Moqui.getExecutionContext()
+        ec = MoquiEntity.getExecutionContext()
     }
 
     def cleanupSpec() {

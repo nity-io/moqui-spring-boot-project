@@ -13,18 +13,14 @@
  */
 
 
-import org.moqui.Moqui
+import org.moqui.MoquiEntity
 import org.moqui.context.ExecutionContext
-import org.moqui.entity.EntityCondition
 import org.moqui.entity.EntityFind
 import org.moqui.entity.EntityList
-import org.moqui.entity.EntityValue
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import spock.lang.Ignore
 import spock.lang.Shared
 import spock.lang.Specification
-import spock.lang.Unroll
 
 import java.sql.Timestamp
 
@@ -38,7 +34,7 @@ class SubSelectTests extends Specification {
 
     def setupSpec() {
         // init the framework, get the ec
-        ec = Moqui.getExecutionContext()
+        ec = MoquiEntity.getExecutionContext()
         timestamp = ec.user.nowTimestamp
     }
 

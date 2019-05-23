@@ -16,7 +16,7 @@
 
 package io.nity.moqui.cache.sample.service;
 
-import org.moqui.cache.context.CacheFacade;
+import org.moqui.context.CacheFacade;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

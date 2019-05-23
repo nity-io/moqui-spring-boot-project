@@ -43,7 +43,7 @@ import java.sql.Connection
 class TransactionCache implements Synchronization {
     protected final static Logger logger = LoggerFactory.getLogger(TransactionCache.class)
 
-    protected ExecutionContextFactoryImpl ecfi
+    protected EntityExecutionContextFactoryImpl ecfi
     private boolean readOnly
 
     private Map<Map, EntityValueBase> readOneCache = new HashMap<>()
@@ -55,7 +55,7 @@ class TransactionCache implements Synchronization {
     private ArrayList<EntityWriteInfo> writeInfoList = new ArrayList<EntityWriteInfo>(50)
     private LinkedHashMap<String, LinkedHashMap<Map, EntityValueBase>> createByEntityRef = new LinkedHashMap<>()
 
-    TransactionCache(ExecutionContextFactoryImpl ecfi, boolean readOnly) {
+    TransactionCache(EntityExecutionContextFactoryImpl ecfi, boolean readOnly) {
         this.ecfi = ecfi
         this.readOnly = readOnly
     }

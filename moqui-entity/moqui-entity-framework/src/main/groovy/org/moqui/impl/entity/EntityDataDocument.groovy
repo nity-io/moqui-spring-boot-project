@@ -15,6 +15,7 @@ package org.moqui.impl.entity
 
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
+import org.moqui.context.ExecutionContext
 import org.moqui.entity.EntityCondition
 import org.moqui.entity.EntityException
 import org.moqui.entity.EntityFind
@@ -177,7 +178,7 @@ class EntityDataDocument {
 
         // add conditions
         if (dataDocumentConditionList != null && dataDocumentConditionList.size() > 0) {
-            ExecutionContextImpl eci = efi.ecfi.getEci()
+            ExecutionContext eci = efi.ecfi.getEci()
             for (EntityValue dataDocumentCondition in dataDocumentConditionList) {
                 String fieldAlias = (String) dataDocumentCondition.getNoCheckSimple("fieldNameAlias")
                 FieldInfo fi = ed.getFieldInfo(fieldAlias)
@@ -189,7 +190,7 @@ class EntityDataDocument {
                         mainFind.conditionToField(fieldAlias, EntityConditionFactoryImpl.stringComparisonOperatorMap.get(operator), toFieldAlias)
                     } else {
                         String stringVal = (String) dataDocumentCondition.getNoCheckSimple("fieldValue")
-                        Object objVal = fi.convertFromString(stringVal, eci.l10nFacade)
+                        Object objVal = fi.convertFromString(stringVal, eci.getL10n())
                         mainFind.condition(fieldAlias, operator, objVal)
                     }
                 }
@@ -225,7 +226,7 @@ class EntityDataDocument {
     }
 
     ArrayList<Map> getDataDocuments(String dataDocumentId, EntityCondition condition, Timestamp fromUpdateStamp, Timestamp thruUpdatedStamp) {
-        ExecutionContextImpl eci = efi.ecfi.getEci()
+        ExecutionContext eci = efi.ecfi.getEci()
 
         DataDocumentInfo ddi = new DataDocumentInfo(dataDocumentId, efi)
         EntityList dataDocumentRelAliasList = ddi.dataDocument.findRelated("moqui.entity.document.DataDocumentRelAlias", null, null, true, false)
@@ -275,7 +276,7 @@ class EntityDataDocument {
                     docMap = new LinkedHashMap<>()
                     docMap.put("_type", dataDocumentId)
                     if (docId) docMap.put("_id", docId)
-                    docMap.put('_timestamp', eci.l10nFacade.format(
+                    docMap.put('_timestamp', eci.getL10n().format(
                             thruUpdatedStamp ?: new Timestamp(System.currentTimeMillis()), "yyyy-MM-dd'T'HH:mm:ssZ"))
                     String _index = ddi.dataDocument.indexName
                     if (_index) docMap.put('_index', _index.toLowerCase())
@@ -322,13 +323,13 @@ class EntityDataDocument {
             // call the manualDataServiceName service for each document
             if (manualDataServiceName != null && !manualDataServiceName.isEmpty()) {
                 // logger.warn("Calling ${manualDataServiceName} with doc: ${docMap}")
-                Map result = efi.ecfi.serviceFacade.sync().name(manualDataServiceName)
-                        .parameter("dataDocumentId", dataDocumentId).parameter("document", docMap).call()
-                Map outDoc = (Map<String, Object>) result.get("document")
-                if (outDoc != null && outDoc.size() > 0) {
-                    docMap = outDoc
-                    documentMapList.set(i, docMap)
-                }
+//                Map result = efi.ecfi.serviceFacade.sync().name(manualDataServiceName)
+//                        .parameter("dataDocumentId", dataDocumentId).parameter("document", docMap).call()
+//                Map outDoc = (Map<String, Object>) result.get("document")
+//                if (outDoc != null && outDoc.size() > 0) {
+//                    docMap = outDoc
+//                    documentMapList.set(i, docMap)
+//                }
             }
 
             // evaluate expression fields

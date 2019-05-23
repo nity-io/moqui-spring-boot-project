@@ -14,6 +14,7 @@
 package org.moqui.impl.entity;
 
 import org.moqui.BaseArtifactException;
+import org.moqui.context.L10nFacade;
 import org.moqui.entity.EntityException;
 import org.moqui.impl.context.L10nFacadeImpl;
 import org.moqui.impl.entity.condition.ConditionField;
@@ -161,7 +162,7 @@ public class FieldInfo {
         return temp;
     }
 
-    public Object convertFromString(String value, L10nFacadeImpl l10n) {
+    public Object convertFromString(String value, L10nFacade l10n) {
         if (value == null) return null;
         if ("null".equals(value)) return null;
 
@@ -248,7 +249,7 @@ public class FieldInfo {
                 case 8:
                 case 9:
                     if (value instanceof BigDecimal) value = safeStripZeroes((BigDecimal) value);
-                    L10nFacadeImpl l10n = ed.efi.ecfi.getEci().l10nFacade;
+                    L10nFacade l10n = ed.efi.ecfi.getEci().getL10n();
                     outValue = l10n.format(value, null);
                     break;
                 case 10: outValue = value.toString(); break;

@@ -15,6 +15,7 @@ package org.moqui.impl.context
 
 import groovy.transform.CompileStatic
 import org.moqui.BaseException
+import org.moqui.context.ExecutionContext
 import org.moqui.context.TransactionException
 import org.moqui.context.TransactionFacade
 import org.moqui.context.TransactionInternal
@@ -40,7 +41,7 @@ class TransactionFacadeImpl implements TransactionFacade {
     protected final static Logger logger = LoggerFactory.getLogger(TransactionFacadeImpl.class)
     protected final static boolean isTraceEnabled = logger.isTraceEnabled()
 
-    protected final ExecutionContextFactoryImpl ecfi
+    protected final EntityExecutionContextFactoryImpl ecfi
 
     protected TransactionInternal transactionInternal = null
 
@@ -55,7 +56,7 @@ class TransactionFacadeImpl implements TransactionFacade {
 
     private final PlatformTransactionManager transactionManager;
 
-    TransactionFacadeImpl(ExecutionContextFactoryImpl ecfi) {
+    TransactionFacadeImpl(EntityExecutionContextFactoryImpl ecfi) {
         this.ecfi = ecfi
 
         MNode transactionFacadeNode = ecfi.getConfXmlRoot().first("transaction-facade")
@@ -79,6 +80,7 @@ class TransactionFacadeImpl implements TransactionFacade {
         if (transactionFacadeNode.attribute("use-connection-stash") == "false") useConnectionStash = false
     }
 
+    @Override
     void destroy() {
         // set to null first to avoid additional operations
         this.tm = null
@@ -186,7 +188,7 @@ class TransactionFacadeImpl implements TransactionFacade {
             long threadWait = timeout != null ? timeout * 10000 : 60000
 
             Thread txThread = null
-            ExecutionContextImpl eci = ecfi.getEci()
+            ExecutionContext eci = ecfi.getEci()
             Throwable threadThrown = null
 
             try {
@@ -303,7 +305,7 @@ class TransactionFacadeImpl implements TransactionFacade {
 
     @Override
     boolean isTransactionInPlace() { getStatus() != Status.STATUS_NO_TRANSACTION }
-
+    @Override
     boolean isTransactionActive() { getStatus() == Status.STATUS_ACTIVE }
     boolean isTransactionOperable() {
         int curStatus = getStatus()
@@ -607,7 +609,7 @@ class TransactionFacadeImpl implements TransactionFacade {
             if (isTraceEnabled) {
                 StringBuilder infoString = new StringBuilder()
                 infoString.append("Initializing TX cache at:")
-                for (infoAei in ecfi.getEci().artifactExecutionFacade.getStack()) infoString.append(infoAei.getName())
+                for (infoAei in ecfi.getEci().getArtifactExecution().getStack()) infoString.append(infoAei.getName())
                 logger.trace(infoString.toString())
             // } else if (logger.isInfoEnabled()) {
             //     logger.info("Initializing TX cache in ${ecfi.getEci().getArtifactExecutionImpl().peek()?.getName()}")
@@ -619,7 +621,7 @@ class TransactionFacadeImpl implements TransactionFacade {
             txStackInfo.txCache = txCache
             registerSynchronization(txCache)
         } else if (txStackInfo.txCache.isReadOnly()) {
-            if (isTraceEnabled) logger.trace("Making TX cache write through in ${ecfi.getEci().artifactExecutionFacade.peek()?.getName()}")
+            if (isTraceEnabled) logger.trace("Making TX cache write through in ${ecfi.getEci().getArtifactExecution().peek()?.getName()}")
             txStackInfo.txCache.makeWriteThrough()
             // doing on read only init: registerSynchronization(txStackInfo.txCache)
         }

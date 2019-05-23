@@ -17,25 +17,26 @@ import groovy.transform.CompileStatic
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 import org.moqui.BaseArtifactException
 import org.moqui.BaseException
+import org.moqui.context.ArtifactExecutionFacade
 import org.moqui.context.ArtifactExecutionInfo
+import org.moqui.context.EntityExecutionContextFactory
+import org.moqui.context.ExecutionContext
 import org.moqui.etl.SimpleEtl
 import org.moqui.impl.context.ArtifactExecutionInfoImpl
 import org.moqui.impl.context.ExecutionContextImpl
 import org.moqui.impl.entity.condition.EntityConditionImplBase
 import org.moqui.impl.entity.condition.FieldValueCondition
 import org.moqui.impl.entity.condition.ListCondition
-import org.moqui.impl.service.runner.EntityAutoServiceRunner
 import org.moqui.resource.ResourceReference
 import org.moqui.entity.*
 import org.moqui.impl.context.ArtifactExecutionFacadeImpl
-import org.moqui.impl.context.ExecutionContextFactoryImpl
+import org.moqui.impl.context.EntityExecutionContextFactoryImpl
 import org.moqui.impl.context.TransactionFacadeImpl
 import org.moqui.impl.entity.EntityJavaUtil.RelationshipInfo
 import org.moqui.util.CollectionUtilities
 import org.moqui.util.MNode
 import org.moqui.util.ObjectUtilities
 import org.moqui.util.StringUtilities
-import org.moqui.util.SystemBinding
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Element
@@ -54,7 +55,9 @@ class EntityFacadeImpl implements EntityFacade {
     protected final static Logger logger = LoggerFactory.getLogger(EntityFacadeImpl.class)
     protected final static boolean isTraceEnabled = logger.isTraceEnabled()
 
-    public final ExecutionContextFactoryImpl ecfi
+    final static Set<String> otherFieldsToSkip = new HashSet(['ec', '_entity', 'authUsername', 'authPassword'])
+
+    public final EntityExecutionContextFactoryImpl ecfi
     public final EntityConditionFactoryImpl entityConditionFactory
 
     protected final HashMap<String, EntityDatasourceFactory> datasourceFactoryByGroupMap = new HashMap()
@@ -92,7 +95,7 @@ class EntityFacadeImpl implements EntityFacade {
 
     protected final EntityListImpl emptyList
 
-    EntityFacadeImpl(ExecutionContextFactoryImpl ecfi) {
+    EntityFacadeImpl(EntityExecutionContextFactoryImpl ecfi) {
         this.ecfi = ecfi
         entityConditionFactory = new EntityConditionFactoryImpl(this)
 
@@ -899,15 +902,18 @@ class EntityFacadeImpl implements EntityFacade {
         if (lst != null && lst.size() > 0) {
             // if Entity ECA rules disabled in ArtifactExecutionFacade, just return immediately
             // do this only if there are EECA rules to run, small cost in getEci, etc
-            if (ecfi.getEci().artifactExecutionFacade.entityEcaDisabled()) return
+            if (ecfi.getEci().getArtifactExecution().entityEcaDisabled()) return
+
+            ExecutionContext ec = ecfi.getEci()
 
             for (int i = 0; i < lst.size(); i++) {
                 EntityEcaRule eer = (EntityEcaRule) lst.get(i)
-                eer.runIfMatches(entityName, fieldValues, operation, before, ecfi.getEci())
+                eer.runIfMatches(entityName, fieldValues, operation, before, ec)
             }
         }
     }
 
+    @Override
     void destroy() {
         Set<String> groupNames = this.datasourceFactoryByGroupMap.keySet()
         for (String groupName in groupNames) {
@@ -991,6 +997,7 @@ class EntityFacadeImpl implements EntityFacade {
     /** This is used mostly by the service engine to quickly determine whether a noun is an entity. Called for all
      * ServiceDefinition init to see if the noun is an entity name. Called by entity auto check if no path and verb is
      * one of the entity-auto supported verbs. */
+    @Override
     boolean isEntityDefined(String entityName) {
         if (entityName == null) return false
 
@@ -1004,6 +1011,7 @@ class EntityFacadeImpl implements EntityFacade {
         return locList != null && locList.size() > 0
     }
 
+    @Override
     EntityDefinition getEntityDefinition(String entityName) {
         if (entityName == null) return null
         EntityDefinition ed = (EntityDefinition) frameworkEntityDefinitions.get(entityName)
@@ -1116,6 +1124,7 @@ class EntityFacadeImpl implements EntityFacade {
         return efl
     }
 
+    @Override
     MNode getDatabaseNode(String groupName) {
         MNode node = databaseNodeByGroupName.get(groupName)
         if (node != null) return node
@@ -1157,6 +1166,7 @@ class EntityFacadeImpl implements EntityFacade {
 
     /** Get a JDBC Connection based on xa-properties configuration. The Conf Map should contain the default entity_ds properties
      * including entity_ds_db_conf, entity_ds_host, entity_ds_port, entity_ds_database, entity_ds_user, entity_ds_password */
+    @Override
     XAConnection getConfConnection(Map<String, String> confMap) {
         String confName = confMap.entity_ds_db_conf
         MNode databaseNode = getDatabaseNodeByConf(confName)
@@ -1248,6 +1258,8 @@ class EntityFacadeImpl implements EntityFacade {
         if (edf == null) throw new EntityException("Could not find EntityDatasourceFactory for entity group ${groupName}")
         return edf
     }
+
+    @Override
     List<Map<String, Object>> getDataSourcesInfo() {
         List<Map<String, Object>> dsiList = new LinkedList<>()
         for (String groupName in datasourceFactoryByGroupMap.keySet()) {
@@ -1338,9 +1350,10 @@ class EntityFacadeImpl implements EntityFacade {
 
     /** Simple, fast find by primary key; doesn't filter find based on authz; doesn't use TransactionCache
      * For cached queries this is about 50% faster (6M/s vs 4M/s) for non-cached queries only about 10% faster (500K vs 450K) */
+    @Override
     EntityValue fastFindOne(String entityName, Boolean useCache, boolean disableAuthz, Object... values) {
-        ExecutionContextImpl ec = ecfi.getEci()
-        ArtifactExecutionFacadeImpl aefi = ec.artifactExecutionFacade
+        ExecutionContext ec = ecfi.getEci()
+        ArtifactExecutionFacade aefi = ec.getArtifactExecution()
         boolean enableAuthz = disableAuthz ? !aefi.disableAuthz() : false
         try {
             EntityDefinition ed = getEntityDefinition(entityName)
@@ -1615,11 +1628,11 @@ class EntityFacadeImpl implements EntityFacade {
             }
         } else {
             // use the entity auto service runner for other operations (create, store, update, delete)
-            Map result = ecfi.serviceFacade.sync().name(operation, lastEd.fullEntityName).parameters(parameters).call()
-            return result
+            throw new EntityException("Operation [${operation}] not implemented")
         }
     }
 
+    @Override
     EntityList getValueListFromPlainMap(Map value, String entityName) {
         if (entityName == null || entityName.length() == 0) entityName = value."_entity"
         if (entityName == null || entityName.length() == 0) throw new EntityException("No entityName passed and no _entity field in value Map")
@@ -1659,7 +1672,7 @@ class EntityFacadeImpl implements EntityFacade {
 
             String entryName = (String) entry.getKey()
             if (parentPks != null && parentPks.containsKey(entryName)) continue
-            if (EntityAutoServiceRunner.otherFieldsToSkip.contains(entryName)) continue
+            if (otherFieldsToSkip.contains(entryName)) continue
 
             EntityDefinition subEd = null
             Map<String, Object> pkMap = null
@@ -1824,7 +1837,7 @@ class EntityFacadeImpl implements EntityFacade {
                 }
 
                 ecfi.transactionFacade.runRequireNew(null, "Error getting primary sequenced ID", true, true, {
-                    ArtifactExecutionFacadeImpl aefi = ecfi.getEci().artifactExecutionFacade
+                    ArtifactExecutionFacade aefi = ecfi.getEci().getArtifactExecution()
                     boolean enableAuthz = !aefi.disableAuthz()
                     try {
                         EntityValue svi = find("moqui.entity.SequenceValueItem").condition("seqName", seqName)
@@ -1961,9 +1974,10 @@ class EntityFacadeImpl implements EntityFacade {
                     curValue.createOrUpdate()
                 }
             } else {
-                Map<String, Object> results = new HashMap()
-                EntityAutoServiceRunner.storeEntity(efi.ecfi.getEci(), ed, entry.getEtlValues(), results, null)
-                if (results.size() > 0) entry.getEtlValues().putAll(results)
+                throw new EntityException("Operation not implemented")
+//                Map<String, Object> results = new HashMap()
+//                EntityAutoServiceRunner.storeEntity(efi.ecfi.getEci(), ed, entry.getEtlValues(), results, null)
+//                if (results.size() > 0) entry.getEtlValues().putAll(results)
             }
         }
         @Override void complete(SimpleEtl etl) {
@@ -2146,4 +2160,9 @@ class EntityFacadeImpl implements EntityFacade {
         return qsl
     }
     void clearQueryStats() { queryStatsInfoMap.clear() }
+
+    @Override
+    EntityExecutionContextFactory getFactory(){
+        return ecfi
+    }
 }

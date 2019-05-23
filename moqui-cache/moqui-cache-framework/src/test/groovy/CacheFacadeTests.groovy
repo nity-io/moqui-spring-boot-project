@@ -14,7 +14,7 @@
 
 
 import org.moqui.cache.Moqui
-import org.moqui.cache.context.CacheFacade
+import org.moqui.context.CacheFacade
 import org.moqui.cache.context.ExecutionContext
 import org.moqui.cache.impl.context.ExecutionContextFactoryImpl
 import org.moqui.jcache.MCache

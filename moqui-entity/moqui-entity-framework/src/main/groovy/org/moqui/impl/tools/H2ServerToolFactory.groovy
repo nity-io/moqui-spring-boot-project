@@ -16,9 +16,8 @@ package org.moqui.impl.tools
 import groovy.transform.CompileStatic
 import org.h2.tools.Server
 import org.moqui.MoquiEntity
-import org.moqui.context.ExecutionContextFactory
 import org.moqui.context.ToolFactory
-import org.moqui.impl.context.ExecutionContextFactoryImpl
+import org.moqui.impl.context.EntityExecutionContextFactoryImpl
 import org.moqui.util.MNode
 import org.moqui.util.SystemBinding
 import org.slf4j.Logger
@@ -32,7 +31,7 @@ import java.lang.reflect.Field
 class H2ServerToolFactory implements ToolFactory<Server> {
     protected final static Logger logger = LoggerFactory.getLogger(H2ServerToolFactory.class)
 
-    protected ExecutionContextFactoryImpl ecfi = null
+    protected EntityExecutionContextFactoryImpl ecfi = null
 
     // for the embedded H2 server to allow remote access, used to stop server on destroy
     protected Server h2Server = null
@@ -42,7 +41,7 @@ class H2ServerToolFactory implements ToolFactory<Server> {
 
     @Override
     void init() {
-        this.ecfi = (ExecutionContextFactoryImpl) MoquiEntity.getExecutionContextFactory();
+        this.ecfi = (EntityExecutionContextFactoryImpl) MoquiEntity.getExecutionContextFactory();
 
         for (MNode datasourceNode in ecfi.getConfXmlRoot().first("entity-facade").children("datasource")) {
             String dbConfName = datasourceNode.attribute("database-conf-name")

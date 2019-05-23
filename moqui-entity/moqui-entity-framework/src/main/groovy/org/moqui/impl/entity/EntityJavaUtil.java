@@ -15,13 +15,12 @@ package org.moqui.impl.entity;
 
 import org.moqui.BaseException;
 import org.moqui.context.ArtifactExecutionInfo;
+import org.moqui.context.ExecutionContext;
 import org.moqui.entity.EntityCondition;
 import org.moqui.entity.EntityDatasourceFactory;
 import org.moqui.entity.EntityException;
 import org.moqui.entity.EntityNotFoundException;
-import org.moqui.impl.context.ExecutionContextImpl;
 import org.moqui.util.MNode;
-
 import org.moqui.util.ObjectUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +31,6 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
 import javax.xml.bind.DatatypeConverter;
-
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -355,7 +353,7 @@ public class EntityJavaUtil {
         void setFields(Map<String, Object> src, Map<String, Object> dest, boolean setIfEmpty, String namePrefix, Boolean pks) {
             if (src == null || dest == null) return;
 
-            ExecutionContextImpl eci = efi.ecfi.getEci();
+            ExecutionContext eci = efi.ecfi.getEci();
             boolean destIsEntityValueBase = dest instanceof EntityValueBase;
             EntityValueBase destEvb = destIsEntityValueBase ? (EntityValueBase) dest : null;
 
@@ -392,11 +390,11 @@ public class EntityJavaUtil {
                     if (!isEmpty) {
                         if (isCharSequence) {
                             try {
-                                Object converted = fi.convertFromString(value.toString(), eci.l10nFacade);
+                                Object converted = fi.convertFromString(value.toString(), eci.getL10n());
                                 if (destIsEntityValueBase) destEvb.putNoCheck(fieldName, converted);
                                 else dest.put(fieldName, converted);
                             } catch (BaseException be) {
-                                eci.messageFacade.addValidationError(null, fieldName, null, be.getMessage(), be);
+                                eci.getMessage().addValidationError(null, fieldName, null, be.getMessage(), be);
                             }
                         } else {
                             if (destIsEntityValueBase) destEvb.putNoCheck(fieldName, value);
@@ -420,7 +418,7 @@ public class EntityJavaUtil {
             // like above with setIfEmpty=true, namePrefix=null, pks=null
             if (src == null || dest == null) return;
 
-            ExecutionContextImpl eci = efi.ecfi.getEci();
+            ExecutionContext eci = efi.ecfi.getEci();
             boolean srcIsEntityValueBase = src instanceof EntityValueBase;
             EntityValueBase evb = srcIsEntityValueBase ? (EntityValueBase) src : null;
             FieldInfo[] fieldInfoArray = pks == null ? allFieldInfoArray :
@@ -447,10 +445,10 @@ public class EntityJavaUtil {
                     if (!isEmpty) {
                         if (isCharSequence) {
                             try {
-                                Object converted = fi.convertFromString(value.toString(), eci.l10nFacade);
+                                Object converted = fi.convertFromString(value.toString(), eci.getL10n());
                                 dest.putNoCheck(fieldName, converted);
                             } catch (BaseException be) {
-                                eci.messageFacade.addValidationError(null, fieldName, null, be.getMessage(), be);
+                                eci.getMessage().addValidationError(null, fieldName, null, be.getMessage(), be);
                             }
                         } else {
                             dest.putNoCheck(fieldName, value);
@@ -640,7 +638,7 @@ public class EntityJavaUtil {
             totalTimeNanos += runTimeNanos;
             totalSquaredTime += runTimeNanos * runTimeNanos;
             // this gets much more expensive, consider commenting in the future
-            ArtifactExecutionInfo aei = efi.ecfi.getEci().artifactExecutionFacade.peek();
+            ArtifactExecutionInfo aei = efi.ecfi.getEci().getArtifactExecution().peek();
             if (aei != null) aei = aei.getParent();
             if (aei != null) {
                 String artifactName = aei.getName();

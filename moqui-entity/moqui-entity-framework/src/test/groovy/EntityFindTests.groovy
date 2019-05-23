@@ -19,7 +19,7 @@ import spock.lang.*
 
 import org.moqui.context.ExecutionContext
 import org.moqui.entity.EntityValue
-import org.moqui.Moqui
+import org.moqui.MoquiEntity
 import java.sql.Timestamp
 import org.moqui.entity.EntityCondition
 import org.moqui.entity.EntityList
@@ -34,7 +34,7 @@ class EntityFindTests extends Specification {
 
     def setupSpec() {
         // init the framework, get the ec
-        ec = Moqui.getExecutionContext()
+        ec = MoquiEntity.getExecutionContext()
         timestamp = ec.user.nowTimestamp
     }
 

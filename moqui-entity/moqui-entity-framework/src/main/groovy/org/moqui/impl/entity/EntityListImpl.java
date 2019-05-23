@@ -14,12 +14,10 @@
 package org.moqui.impl.entity;
 
 import groovy.lang.Closure;
-import org.moqui.Moqui;
-import org.moqui.entity.EntityCondition;
-import org.moqui.entity.EntityException;
-import org.moqui.entity.EntityList;
-import org.moqui.entity.EntityValue;
-import org.moqui.impl.context.ExecutionContextFactoryImpl;
+import org.moqui.MoquiEntity;
+import org.moqui.context.ExecutionContext;
+import org.moqui.entity.*;
+import org.moqui.impl.context.EntityExecutionContextFactoryImpl;
 import org.moqui.util.CollectionUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +33,7 @@ import java.util.*;
 
 public class EntityListImpl implements EntityList {
     protected static final Logger logger = LoggerFactory.getLogger(EntityConditionFactoryImpl.class);
-    private transient EntityFacadeImpl efiTransient;
+    private transient EntityFacade efiTransient;
     private ArrayList<EntityValue> valueList;
     private boolean fromCache = false;
     protected Integer offset = null;
@@ -44,12 +42,12 @@ public class EntityListImpl implements EntityList {
     /** Default constructor for deserialization ONLY. */
     public EntityListImpl() { }
 
-    public EntityListImpl(EntityFacadeImpl efi) {
+    public EntityListImpl(EntityFacade efi) {
         this.efiTransient = efi;
         valueList = new ArrayList<>(30);// default size, at least enough for common pagination
     }
 
-    public EntityListImpl(EntityFacadeImpl efi, int initialCapacity) {
+    public EntityListImpl(EntityFacade efi, int initialCapacity) {
         this.efiTransient = efi;
         valueList = new ArrayList<>(initialCapacity);
     }
@@ -65,9 +63,9 @@ public class EntityListImpl implements EntityList {
     }
 
     @SuppressWarnings("unchecked")
-    public EntityFacadeImpl getEfi() {
+    public EntityFacade getEfi() {
         if (efiTransient == null)
-            efiTransient = ((ExecutionContextFactoryImpl) Moqui.getExecutionContextFactory()).entityFacade;
+            efiTransient = ((EntityExecutionContextFactoryImpl) MoquiEntity.getExecutionContextFactory()).entityFacade;
         return efiTransient;
     }
 
@@ -258,9 +256,10 @@ public class EntityListImpl implements EntityList {
 
     @Override public EntityList filterByLimit(String inputFieldsMapName, boolean alwaysPaginate) {
         if (fromCache) return this.cloneList().filterByLimit(inputFieldsMapName, alwaysPaginate);
+        ExecutionContext executionContext = getEfi().getFactory().getExecutionContext();
         Map inf = inputFieldsMapName != null && inputFieldsMapName.length() > 0 ?
-                (Map) getEfi().ecfi.getEci().contextStack.get(inputFieldsMapName) :
-                getEfi().ecfi.getEci().contextStack;
+                (Map) executionContext.getContext().get(inputFieldsMapName) :
+                executionContext.getContext();
         if (alwaysPaginate || inf.get("pageIndex") != null) {
             final Object pageIndexObj = inf.get("pageIndex");
             int pageIndex;

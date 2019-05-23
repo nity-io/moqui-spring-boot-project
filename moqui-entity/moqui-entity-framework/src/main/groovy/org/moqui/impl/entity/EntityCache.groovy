@@ -19,7 +19,7 @@ import javax.cache.Cache
 import org.moqui.entity.EntityCondition
 import org.moqui.entity.EntityList
 import org.moqui.entity.EntityValue
-import org.moqui.cache.impl.context.CacheFacadeImpl
+import org.moqui.impl.context.CacheFacadeImpl
 import org.moqui.util.MNode
 import org.moqui.util.SimpleTopic
 import org.slf4j.Logger

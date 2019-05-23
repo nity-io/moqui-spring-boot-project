@@ -12,7 +12,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-import org.moqui.Moqui
+import org.moqui.MoquiEntity
 import org.moqui.context.ExecutionContext
 import org.moqui.screen.ScreenTest
 import org.moqui.screen.ScreenTest.ScreenTestRender
@@ -31,7 +31,7 @@ class ToolsScreenRenderTests extends Specification {
     ScreenTest screenTest
 
     def setupSpec() {
-        ec = Moqui.getExecutionContext()
+        ec = MoquiEntity.getExecutionContext()
         ec.user.loginUser("john.doe", "moqui")
         screenTest = ec.screen.makeTest().baseScreenPath("apps/tools")
     }

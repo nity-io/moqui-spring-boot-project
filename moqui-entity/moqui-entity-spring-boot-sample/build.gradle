@@ -38,10 +38,6 @@ sourceSets {
 }
 
 tasks.getByName("processResources") {
-    doFirst {
-        checkEntityConf()
-    }
-
     from fileTree(dir: projectDir.absolutePath, includes: ['data/**', 'entity/**', 'script/**', 'screen/**', 'service/**', 'template/**']) // 'xsd/**'
 }
 

@@ -15,28 +15,22 @@ package org.moqui.impl.entity
 
 import groovy.transform.CompileStatic
 import org.moqui.BaseArtifactException
-import org.moqui.entity.EntityFind
-import org.moqui.impl.context.ExecutionContextImpl
-import org.moqui.impl.entity.condition.ConditionAlias
-import org.moqui.util.ObjectUtilities
-import org.moqui.util.StringUtilities
-
-import javax.cache.Cache
-import java.sql.Timestamp
-
+import org.moqui.context.ExecutionContext
 import org.moqui.entity.EntityCondition
 import org.moqui.entity.EntityCondition.JoinOperator
 import org.moqui.entity.EntityException
+import org.moqui.entity.EntityFind
 import org.moqui.entity.EntityValue
-import org.moqui.impl.entity.condition.EntityConditionImplBase
-import org.moqui.impl.entity.condition.ConditionField
-import org.moqui.impl.entity.condition.FieldValueCondition
-import org.moqui.impl.entity.condition.FieldToFieldCondition
 import org.moqui.impl.entity.EntityJavaUtil.RelationshipInfo
+import org.moqui.impl.entity.condition.*
 import org.moqui.util.MNode
-
+import org.moqui.util.ObjectUtilities
+import org.moqui.util.StringUtilities
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
+import javax.cache.Cache
+import java.sql.Timestamp
 
 @CompileStatic
 class EntityDefinition {
@@ -937,11 +931,11 @@ class EntityDefinition {
         return mePkFieldToAliasNameMap
     }
 
-    Object convertFieldString(String name, String value, ExecutionContextImpl eci) {
+    Object convertFieldString(String name, String value, ExecutionContext eci) {
         if (value == null) return null
         FieldInfo fieldInfo = getFieldInfo(name)
         if (fieldInfo == null) throw new EntityException("Invalid field name ${name} for entity ${fullEntityName}")
-        return fieldInfo.convertFromString(value, eci.l10nFacade)
+        return fieldInfo.convertFromString(value, eci.getL10n())
     }
 
     static String getFieldStringForFile(FieldInfo fieldInfo, Object value) {
@@ -973,7 +967,7 @@ class EntityDefinition {
 
     protected EntityConditionImplBase makeViewListCondition(MNode conditionsParent) {
         if (conditionsParent == null) return null
-        ExecutionContextImpl eci = efi.ecfi.getEci()
+        ExecutionContext eci = efi.ecfi.getEci()
         List<EntityCondition> condList = new ArrayList()
         for (MNode dateFilter in conditionsParent.children("date-filter")) {
             // NOTE: this doesn't do context expansion of the valid-date as it doesn't make sense for an entity def to depend on something being in the context

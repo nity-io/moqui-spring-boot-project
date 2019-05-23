@@ -14,7 +14,7 @@
 package org.moqui.cache.impl.tools;
 
 import org.moqui.cache.MoquiCache;
-import org.moqui.cache.context.ExecutionContextFactory;
+import org.moqui.context.ExecutionContextFactory;
 import org.moqui.context.ToolFactory;
 import org.moqui.jcache.MCacheManager;
 import org.slf4j.Logger;

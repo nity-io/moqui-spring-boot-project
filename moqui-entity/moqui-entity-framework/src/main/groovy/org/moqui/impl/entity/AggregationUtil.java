@@ -18,6 +18,7 @@ import groovy.lang.Script;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.moqui.BaseArtifactException;
+import org.moqui.context.ExecutionContext;
 import org.moqui.entity.EntityValue;
 import org.moqui.impl.actions.XmlAction;
 import org.moqui.impl.context.ExecutionContextImpl;
@@ -72,7 +73,7 @@ public class AggregationUtil {
 
 
     @SuppressWarnings("unchecked")
-    public ArrayList<Map<String, Object>> aggregateList(Object listObj, Set<String> includeFields, boolean makeSubList, ExecutionContextImpl eci) {
+    public ArrayList<Map<String, Object>> aggregateList(Object listObj, Set<String> includeFields, boolean makeSubList, ExecutionContext eci) {
         if (groupFields == null || groupFields.length == 0) makeSubList = false;
         ArrayList<Map<String, Object>> resultList = new ArrayList<>();
         if (listObj == null) return resultList;
@@ -143,7 +144,7 @@ public class AggregationUtil {
     @SuppressWarnings("unchecked")
     private void processAggregateOriginal(Object curObject, ArrayList<Map<String, Object>> resultList, Set<String> includeFields,
                                           Map<Map<String, Object>, Map<String, Object>> groupRows, Map<String, Object> totalsMap,
-                                          int index, boolean hasNext, boolean makeSubList, ExecutionContextImpl eci) {
+                                          int index, boolean hasNext, boolean makeSubList, ExecutionContext eci) {
         Map curMap = null;
         if (curObject instanceof EntityValue) {
             curMap = ((EntityValue) curObject).getMap();
@@ -152,7 +153,7 @@ public class AggregationUtil {
         }
         boolean curIsMap = curMap != null;
 
-        ContextStack context = eci.contextStack;
+        ContextStack context = eci.getContext();
         Map<String, Object> contextTopMap;
         if (curMap != null) { contextTopMap = new HashMap<>(curMap); } else { contextTopMap = new HashMap<>(); }
         context.push(contextTopMap);
@@ -175,7 +176,7 @@ public class AggregationUtil {
             for (int i = 0; i < aggregateFields.length; i++) {
                 AggregateField aggField = aggregateFields[i];
                 if (aggField.fromExpr != null) {
-                    Script script = InvokerHelper.createScript(aggField.fromExpr, eci.contextBindingInternal);
+                    Script script = InvokerHelper.createScript(aggField.fromExpr, eci.getContextBinding());
                     Object newValue = script.run();
                     context.put(aggField.fieldName, newValue);
                 }

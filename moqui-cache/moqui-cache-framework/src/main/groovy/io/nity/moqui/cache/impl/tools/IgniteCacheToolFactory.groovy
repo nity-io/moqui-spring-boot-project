@@ -18,7 +18,7 @@ package io.nity.moqui.cache.impl.tools
 
 import groovy.transform.CompileStatic
 import org.moqui.cache.MoquiCache
-import org.moqui.cache.context.ExecutionContextFactory
+import org.moqui.context.ExecutionContextFactory
 import org.moqui.context.ToolFactory
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory

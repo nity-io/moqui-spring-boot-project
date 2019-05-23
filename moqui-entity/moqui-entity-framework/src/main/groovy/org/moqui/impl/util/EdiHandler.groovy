@@ -14,6 +14,7 @@
 package org.moqui.impl.util
 
 import groovy.transform.CompileStatic
+import org.moqui.context.EntityExecutionContextFactory
 import org.moqui.context.ExecutionContext
 import org.moqui.util.CollectionUtilities
 import org.moqui.util.ObjectUtilities
@@ -26,7 +27,7 @@ import java.util.regex.Pattern
 class EdiHandler {
     protected final static Logger logger = LoggerFactory.getLogger(EdiHandler.class)
 
-    protected ExecutionContext ec
+    protected EntityExecutionContextFactory ecf
 
     Character segmentTerminator = null
     Character elementSeparator = null
@@ -42,7 +43,7 @@ class EdiHandler {
 
     protected List<SegmentError> segmentErrors = null
 
-    EdiHandler(ExecutionContext ec) { this.ec = ec }
+    EdiHandler(EntityExecutionContextFactory ecf) { this.ecf = ecf }
 
     EdiHandler setChars(Character segmentTerminator, Character elementSeparator, Character componentDelimiter, Character escapeCharacter) {
         this.segmentTerminator = segmentTerminator ?: ('~' as Character)
@@ -65,7 +66,7 @@ class EdiHandler {
      * evaluate to or return just the structure List).
      */
     EdiHandler loadEnvelope(String location) {
-        envelope = (List<Map<String, Object>>) ec.resource.script(location, null)
+        envelope = (List<Map<String, Object>>) ecf.resource.script(location, null)
         extractSegmentIds(envelope)
         return this
     }
@@ -78,7 +79,7 @@ class EdiHandler {
      * evaluate to or return just the structure List).
      */
     EdiHandler loadBody(String location) {
-        body = (List<Map<String, Object>>) ec.resource.script(location, null)
+        body = (List<Map<String, Object>>) ecf.resource.script(location, null)
         extractSegmentIds(body)
         bodyRootId = body[0].ID
         return this
@@ -255,11 +256,11 @@ class EdiHandler {
     protected int parseSegment(List<String> allSegmentStringList, int segmentIndex, Map<String, List<Object>> currentSegment,
                                Map<String, Object> curDefMap) {
         String segmentString = allSegmentStringList.get(segmentIndex).trim()
-        ArrayList<Object> elements = getSegmentElements(segmentString)
+        List<String> elements = getSegmentElements(segmentString)
 
         String segmentId = elements[0]
         // if segmentId is in the current levelDefList add as child to current segment, increment index, recurse
-        Map<String, List<Object>> newSegment = [elements:elements] as Map<String, List>
+        def newSegment = [elements:elements]
         CollectionUtilities.addToListInMap(segmentId, newSegment, currentSegment)
 
         int nextSegmentIndex = segmentIndex + 1
@@ -286,10 +287,10 @@ class EdiHandler {
             return null
         }
     }
-    protected ArrayList<Object> getSegmentElements(String segmentString) {
+    protected List<String> getSegmentElements(String segmentString) {
         List<String> originalElementList = Arrays.asList(segmentString.split(getElementRegex()))
         // split composite elements to components List, unescape elements
-        ArrayList<Object> elements = new ArrayList<>(originalElementList.size())
+        List<String> elements = new ArrayList<>(originalElementList.size())
         for (String originalElement in originalElementList) {
             // change non-breaking white space to regular space before trim
             originalElement = originalElement.replaceAll("\\u00a0", " ")
@@ -299,9 +300,9 @@ class EdiHandler {
                 if (componentArray.length == 1) {
                     elements.add(unescape(componentArray[0]))
                 } else {
-                    ArrayList<String> components = new ArrayList<>(componentArray.length)
+                    List<String> components = new ArrayList<>(componentArray.length)
                     for (String component in componentArray) components.add(unescape(component.trim()))
-                    elements.add(components)
+                    elements.addAll(components)
                 }
             } else {
                 elements.add(unescape(originalElement))
@@ -473,7 +474,7 @@ class EdiHandler {
         Map<String, List<Object>> makeAk4() {
             Object position = elementPosition as String
             if (compositePosition) position = [position, compositePosition as String]
-            return [elements:['AK4', position, elementErrorX12Codes.get(errorType), elementText]]
+            return [elements:['AK4', position, elementErrorX12Codes.get(errorType), elementText]] as Map<String, List<Object>>
         }
     }
 }

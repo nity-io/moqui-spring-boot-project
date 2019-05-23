@@ -13,7 +13,7 @@
  */
 
 
-import org.moqui.Moqui
+import org.moqui.MoquiEntity
 import org.moqui.context.ExecutionContext
 import org.moqui.entity.EntityValue
 import spock.lang.Shared
@@ -25,7 +25,7 @@ class EntityNoSqlCrud extends Specification {
 
     def setupSpec() {
         // init the framework, get the ec
-        ec = Moqui.getExecutionContext()
+        ec = MoquiEntity.getExecutionContext()
     }
 
     def cleanupSpec() {

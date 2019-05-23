@@ -15,7 +15,7 @@
 import java.sql.Connection
 import java.sql.Statement
 
-import org.moqui.Moqui
+import org.moqui.MoquiEntity
 import org.moqui.context.ExecutionContext
 
 import spock.lang.Shared
@@ -27,7 +27,7 @@ class TransactionFacadeTests extends Specification {
 
     def setupSpec() {
         // init the framework, get the ec
-        ec = Moqui.getExecutionContext()
+        ec = MoquiEntity.getExecutionContext()
     }
 
     def cleanupSpec() {

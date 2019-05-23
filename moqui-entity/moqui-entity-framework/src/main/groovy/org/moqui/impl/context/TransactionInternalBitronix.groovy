@@ -17,7 +17,7 @@ import bitronix.tm.BitronixTransactionManager
 import bitronix.tm.TransactionManagerServices
 import bitronix.tm.resource.jdbc.PoolingDataSource
 import groovy.transform.CompileStatic
-import org.moqui.context.ExecutionContextFactory
+import org.moqui.context.EntityExecutionContextFactory
 import org.moqui.context.TransactionInternal
 import org.moqui.entity.EntityFacade
 import org.moqui.impl.entity.EntityFacadeImpl
@@ -34,7 +34,7 @@ import java.sql.Connection
 class TransactionInternalBitronix implements TransactionInternal {
     protected final static Logger logger = LoggerFactory.getLogger(TransactionInternalBitronix.class)
 
-    protected ExecutionContextFactoryImpl ecfi
+    protected EntityExecutionContextFactoryImpl ecfi
 
     protected BitronixTransactionManager btm
     protected UserTransaction ut
@@ -43,12 +43,12 @@ class TransactionInternalBitronix implements TransactionInternal {
     protected List<PoolingDataSource> pdsList = []
 
     @Override
-    TransactionInternal init(ExecutionContextFactory ecf) {
-        this.ecfi = (ExecutionContextFactoryImpl) ecf
+    TransactionInternal init(EntityExecutionContextFactory ecf) {
+        this.ecfi = (EntityExecutionContextFactoryImpl) ecf
 
         // NOTE: see the bitronix-default-config.properties file for more config
 
-        btm = this.ecfi.transactionManager
+        btm = TransactionManagerServices.getTransactionManager()
         this.ut = btm
         this.tm = btm
 

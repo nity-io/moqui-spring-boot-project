@@ -13,7 +13,7 @@
  */
 
 
-import org.moqui.Moqui
+import org.moqui.MoquiEntity
 import org.moqui.context.ExecutionContext
 import org.moqui.entity.EntityValue
 import spock.lang.Shared
@@ -38,7 +38,7 @@ class TimezoneTest extends Specification {
         oldTz = System.setProperty("default_time_zone", 'Pacific/Kiritimati')
         oldDbTz = System.setProperty("database_time_zone", 'US/Samoa')
 
-        ec = Moqui.getExecutionContext()
+        ec = MoquiEntity.getExecutionContext()
     }
 
     def cleanupSpec() {

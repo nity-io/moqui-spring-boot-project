@@ -16,7 +16,7 @@
 import org.junit.AfterClass
 import org.junit.runner.RunWith
 import org.junit.runners.Suite
-import org.moqui.Moqui
+import org.moqui.MoquiEntity
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses([ CacheFacadeTests.class, EntityCrud.class, EntityFindTests.class, EntityNoSqlCrud.class,
@@ -26,6 +26,6 @@ import org.moqui.Moqui
 class MoquiSuite {
     @AfterClass
     public static void destroyMoqui() {
-        Moqui.destroyActiveExecutionContextFactory();
+        MoquiEntity.destroyActiveExecutionContextFactory();
     }
 }
