@@ -77,4 +77,6 @@ public interface ExecutionContext {
     Object getService();
 
     Object getResource();
+
+    Object getLogger();
 }

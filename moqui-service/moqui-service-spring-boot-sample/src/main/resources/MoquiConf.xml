@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+Copyright 2019 The nity.io Moqui Spring Boot Project Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<moqui-conf xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/moqui-conf-2.1.xsd">
+
+    <default-property name="instance_purpose" value="dev"/>
+
+    <default-property name="entity_ds_db_conf" value="h2"/>
+
+    <cache-list warm-on-start="false">
+        <!-- Development Mode - expires artifact cache entries; don't use these for production, load testing, etc -->
+        <cache name="entity.definition" expire-time-idle="30"/>
+        <!-- longer timeout since this basically looks through all files to check for new or moved entity defs -->
+        <cache name="entity.location" expire-time-live="300"/>
+        <cache name="entity.data.feed.info" expire-time-idle="30"/>
+
+        <cache name="service.location" expire-time-idle="10"/>
+        <cache name="service.rest.api" expire-time-idle="10"/>
+        <cache name="kie.component.releaseId" expire-time-idle="10"/>
+
+        <cache name="screen.location" expire-time-idle="10"/>
+        <cache name="screen.url" expire-time-idle="10"/>
+        <cache name="screen.template.mode" expire-time-idle="10"/>
+        <cache name="screen.template.location" expire-time-idle="10"/>
+        <cache name="screen.find.path" expire-time-idle="30"/>
+
+        <cache name="resource.xml-actions.location" expire-time-idle="5"/>
+        <cache name="resource.groovy.location" expire-time-idle="5"/>
+
+        <cache name="resource.ftl.location" expire-time-idle="5"/>
+        <cache name="resource.gstring.location" expire-time-idle="5"/>
+        <cache name="resource.wiki.location" expire-time-idle="5"/>
+        <cache name="resource.markdown.location" expire-time-idle="5"/>
+        <cache name="resource.text.location" expire-time-idle="5"/>
+        <cache name="resource.reference.location" expire-time-idle="5"/>
+
+        <cache name="l10n.message" expire-time-idle="600"/>
+    </cache-list>
+
+    <entity-facade>
+        <load-entity location="classpath://entity/SampleEntities.xml"/>
+    </entity-facade>
+
+</moqui-conf>

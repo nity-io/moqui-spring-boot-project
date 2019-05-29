@@ -13,16 +13,8 @@
  */
 package org.moqui.impl.context
 
-
 import groovy.transform.CompileStatic
-import org.apache.shiro.SecurityUtils
-import org.apache.shiro.authc.credential.CredentialsMatcher
-import org.apache.shiro.authc.credential.HashedCredentialsMatcher
-import org.apache.shiro.config.IniSecurityManagerFactory
-import org.apache.shiro.crypto.hash.SimpleHash
-import org.codehaus.groovy.control.CompilationUnit
 import org.codehaus.groovy.control.CompilerConfiguration
-import org.codehaus.groovy.tools.GroovyClass
 import org.moqui.BaseException
 import org.moqui.MoquiEntity
 import org.moqui.context.*
@@ -39,7 +31,6 @@ import org.moqui.resource.ResourceReference
 import org.moqui.util.CollectionUtilities
 import org.moqui.util.MClassLoader
 import org.moqui.util.MNode
-import org.moqui.util.StringUtilities
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -50,8 +41,6 @@ import javax.websocket.server.ServerContainer
 import java.lang.management.ManagementFactory
 import java.sql.Timestamp
 import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.ScheduledThreadPoolExecutor
-import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.jar.JarFile
 
@@ -69,8 +58,6 @@ class EntityExecutionContextFactoryImpl extends ExecutionContextFactoryImpl impl
     private final EnumMap<ArtifactType, Boolean> artifactPersistBinByTypeEnum = new EnumMap<>(ArtifactType.class)
     final ConcurrentLinkedQueue<ArtifactHitInfoEntity> deferredHitInfoQueue = new ConcurrentLinkedQueue<ArtifactHitInfoEntity>()
 
-    /** The SecurityManager for Apache Shiro */
-    protected org.apache.shiro.mgt.SecurityManager internalSecurityManager
     /** The ServletContext, if Moqui was initialized in a webapp (generally through MoquiContextListener) */
     protected ServletContext internalServletContext = null
     /** The WebSocket ServerContainer, if found in 'javax.websocket.server.ServerContainer' ServletContext attribute */
@@ -215,70 +202,6 @@ class EntityExecutionContextFactoryImpl extends ExecutionContextFactoryImpl impl
 
     void warmCache() {
         this.entityFacade.warmCache()
-    }
-
-    /** Setup the cached ClassLoader, this should init in the main thread so we can set it properly */
-    private void initClassLoader() {
-        long startTime = System.currentTimeMillis()
-        MClassLoader.addCommonClass("org.moqui.entity.EntityValue", EntityValue.class)
-        MClassLoader.addCommonClass("EntityValue", EntityValue.class)
-        MClassLoader.addCommonClass("org.moqui.entity.EntityList", EntityList.class)
-        MClassLoader.addCommonClass("EntityList", EntityList.class)
-
-        ClassLoader pcl = (Thread.currentThread().getContextClassLoader() ?: this.class.classLoader) ?: System.classLoader
-        moquiClassLoader = new MClassLoader(pcl)
-        groovyClassLoader = new GroovyClassLoader(moquiClassLoader)
-
-        File scriptClassesDir = new File(runtimePath + "/script-classes")
-        scriptClassesDir.mkdirs()
-        if (groovyCompileCacheToDisk) moquiClassLoader.addClassesDirectory(scriptClassesDir)
-        groovyCompilerConf = new CompilerConfiguration()
-        groovyCompilerConf.setTargetDirectory(scriptClassesDir)
-
-        // add runtime/classes jar files to the class loader
-        File runtimeClassesFile = new File(runtimePath + "/classes")
-        if (runtimeClassesFile.exists()) {
-            moquiClassLoader.addClassesDirectory(runtimeClassesFile)
-        }
-        // add runtime/lib jar files to the class loader
-        File runtimeLibFile = new File(runtimePath + "/lib")
-        if (runtimeLibFile.exists()) for (File jarFile: runtimeLibFile.listFiles()) {
-            if (jarFile.getName().endsWith(".jar")) {
-                moquiClassLoader.addJarFile(new JarFile(jarFile), jarFile.toURI().toURL())
-                logger.info("Added JAR from runtime/lib: ${jarFile.getName()}")
-            }
-        }
-
-        // add <component>/classes and <component>/lib jar files to the class loader now that component locations loaded
-        for (ComponentInfo ci in componentInfoMap.values()) {
-            ResourceReference classesRr = ci.componentRr.getChild("classes")
-            if (classesRr.exists && classesRr.supportsDirectory() && classesRr.isDirectory()) {
-                moquiClassLoader.addClassesDirectory(new File(classesRr.getUrl().getPath()))
-            }
-
-            ResourceReference libRr = ci.componentRr.getChild("lib")
-            if (libRr.exists && libRr.supportsDirectory() && libRr.isDirectory()) {
-                Set<String> jarsLoaded = new LinkedHashSet<>()
-                for (ResourceReference jarRr: libRr.getDirectoryEntries()) {
-                    if (jarRr.fileName.endsWith(".jar")) {
-                        try {
-                            moquiClassLoader.addJarFile(new JarFile(new File(jarRr.getUrl().getPath())), jarRr.getUrl())
-                            jarsLoaded.add(jarRr.getFileName())
-                        } catch (Exception e) {
-                            logger.error("Could not load JAR from component ${ci.name}: ${jarRr.getLocation()}: ${e.toString()}")
-                        }
-                    }
-                }
-                logger.info("Added JARs from component ${ci.name}: ${jarsLoaded}")
-            }
-        }
-
-        // clear not found info just in case anything was falsely added
-        moquiClassLoader.clearNotFoundInfo()
-        // set as context classloader
-        Thread.currentThread().setContextClassLoader(groovyClassLoader)
-
-        logger.info("Initialized ClassLoader in ${System.currentTimeMillis() - startTime}ms")
     }
 
     /** Called from MoquiContextListener.contextInitialized after ECFI init */
@@ -450,42 +373,6 @@ class EntityExecutionContextFactoryImpl extends ExecutionContextFactoryImpl impl
             sleep(2000) // wait 2 seconds
             MoquiEntity.dynamicReInit(EntityExecutionContextFactoryImpl.class, internalServletContext)
         })
-    }
-
-    org.apache.shiro.mgt.SecurityManager getSecurityManager() {
-        if (internalSecurityManager != null) return internalSecurityManager
-
-        // init Apache Shiro; NOTE: init must be done here so that ecfi will be fully initialized and in the static context
-        org.apache.shiro.util.Factory<org.apache.shiro.mgt.SecurityManager> factory =
-                new IniSecurityManagerFactory("classpath:shiro.ini")
-        internalSecurityManager = factory.getInstance()
-        // NOTE: setting this statically just in case something uses it, but for Moqui we'll be getting the SecurityManager from the ecfi
-        SecurityUtils.setSecurityManager(internalSecurityManager)
-
-        return internalSecurityManager
-    }
-    CredentialsMatcher getCredentialsMatcher(String hashType, boolean isBase64) {
-        HashedCredentialsMatcher hcm = new HashedCredentialsMatcher()
-        if (hashType) {
-            hcm.setHashAlgorithmName(hashType)
-        } else {
-            hcm.setHashAlgorithmName(getPasswordHashType())
-        }
-        // in Shiro this defaults to true, which is the default unless UserAccount.passwordBase64 = 'Y'
-        hcm.setStoredCredentialsHexEncoded(!isBase64)
-        return hcm
-    }
-    // NOTE: may not be used
-    static String getRandomSalt() { return StringUtilities.getRandomString(8) }
-    String getPasswordHashType() {
-        MNode passwordNode = confXmlRoot.first("user-facade").first("password")
-        return passwordNode.attribute("encrypt-hash-type") ?: "SHA-256"
-    }
-    // NOTE: used in UserServices.xml
-    String getSimpleHash(String source, String salt) { return getSimpleHash(source, salt, getPasswordHashType(), false) }
-    String getSimpleHash(String source, String salt, String hashType, boolean isBase64) {
-        SimpleHash simple = new SimpleHash(hashType ?: getPasswordHashType(), source, salt)
-        return isBase64 ? simple.toBase64() : simple.toHex()
     }
 
     String getLoginKeyHashType() {

@@ -1,0 +1,50 @@
+/*
+ * Copyright 2019 The nity.io Moqui Spring Boot Project Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// tasks.withType(JavaCompile) { options.compilerArgs << "-Xlint:unchecked" }
+// tasks.withType(GroovyCompile) { options.compilerArgs << "-Xlint:unchecked" }
+// tasks.withType(GroovyCompile) { options.compilerArgs << "-Xlint:deprecation" }
+
+version = '2.1.1-rc2'
+
+apply plugin: 'groovy'
+
+// NOTE: packages should match group, name, version found at https://bintray.com/bintray/jcenter
+repositories {
+    jcenter() // http://jcenter.bintray.com
+}
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+dependencies {
+    compile project(':moqui-service:moqui-service-framework')
+    compile project(':moqui-entity:moqui-entity-spring-boot-starter')
+
+    // Groovy
+    compile 'org.codehaus.groovy:groovy:2.4.15' // Apache 2.0
+
+    compile (group: 'org.springframework.boot', name: 'spring-boot-starter-jdbc', version: springBootVersion )
+    implementation "org.springframework.boot:spring-boot-starter-jta-bitronix:${springBootVersion}"
+
+    compileOnly("org.springframework.boot:spring-boot-configuration-processor:${springBootVersion}")
+   
+    // ========== test dependencies ==========
+    // spock-core depends on groovy-all but we are including selected groovy modules, so don't get its dependencies
+    testCompile module('org.spockframework:spock-core:1.1-groovy-2.4') // Apache 2.0
+    testCompile 'junit:junit:4.12' // Apache 2.0
+    
+}

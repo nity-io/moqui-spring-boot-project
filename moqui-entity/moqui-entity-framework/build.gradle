@@ -129,11 +129,7 @@ dependencies {
 
     // JSoup (HTML parser, cleaner)
     compile 'org.jsoup:jsoup:1.11.3' // MIT
-
-    // Apache Shiro
-    compile module('org.apache.shiro:shiro-core:1.4.0') // Apache 2.0
-    compile module('org.apache.shiro:shiro-web:1.4.0') // Apache 2.0
-
+    
     // SLF4J
     compile 'org.slf4j:slf4j-api:1.7.25'
     compile 'ch.qos.logback:logback-classic:1.2.3'

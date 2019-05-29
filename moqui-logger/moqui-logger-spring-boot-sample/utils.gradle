@@ -1,0 +1,4 @@
+/**
+ * 检查entity文件是否都配置到MoquiConf.xml
+ * @return
+ */

@@ -17,6 +17,7 @@ import groovy.lang.GroovyClassLoader;
 import org.moqui.util.MNode;
 
 import javax.annotation.Nonnull;
+import java.net.InetAddress;
 import java.util.LinkedHashMap;
 
 /**
@@ -42,6 +43,10 @@ public interface ExecutionContextFactory {
     @Nonnull String getMoquiVersion();
 
     MNode getConfXmlRoot();
+
+    MNode getServerStatsNode();
+
+    InetAddress getLocalhostAddress();
 
     /** Using an EC in multiple threads is dangerous as much of the ECI is not designed to be thread safe. */
     void useExecutionContextInThread(ExecutionContext eci);

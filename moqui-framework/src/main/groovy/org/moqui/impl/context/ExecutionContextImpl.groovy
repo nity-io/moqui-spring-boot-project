@@ -1,12 +1,6 @@
 package org.moqui.impl.context
 
-import org.moqui.context.ArtifactExecutionFacade
-import org.moqui.context.ExecutionContext
-import org.moqui.context.ExecutionContextFactory
-import org.moqui.context.ExecutionContextThreadHolder
-import org.moqui.context.L10nFacade
-import org.moqui.context.MessageFacade
-import org.moqui.context.UserFacade
+import org.moqui.context.*
 import org.moqui.util.ContextBinding
 import org.moqui.util.ContextStack
 import org.slf4j.Logger
@@ -14,7 +8,6 @@ import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 
 import javax.annotation.Nonnull
-import javax.cache.Cache
 import java.lang.reflect.Method
 
 class ExecutionContextImpl implements ExecutionContext{
@@ -22,7 +15,7 @@ class ExecutionContextImpl implements ExecutionContext{
 
     public final ExecutionContextFactoryImpl ecfi
 
-    public final UserFacadeImpl userFacade;
+    public final UserFacade userFacade;
     public final MessageFacadeImpl messageFacade;
     public final ArtifactExecutionFacadeImpl artifactExecutionFacade;
     public final L10nFacadeImpl l10nFacade;
@@ -40,6 +33,7 @@ class ExecutionContextImpl implements ExecutionContext{
     private volatile Object entityFacade
     private volatile Object serviceFacade
     private volatile Object resourceFacade
+    private volatile Object loggerFacade
 
     ExecutionContextImpl(ExecutionContextFactory executionContextFactory, Thread forThread) {
         this.ecfi = executionContextFactory;
@@ -50,7 +44,7 @@ class ExecutionContextImpl implements ExecutionContext{
         forThreadId = forThread.getId();
         // createLoc = new BaseException("ec create");
 
-        userFacade = new UserFacadeImpl(this);
+        userFacade = createSampleUserFacadeImpl();
         messageFacade = new MessageFacadeImpl();
         artifactExecutionFacade = new ArtifactExecutionFacadeImpl(this);
         l10nFacade = new L10nFacadeImpl(this);
@@ -58,6 +52,14 @@ class ExecutionContextImpl implements ExecutionContext{
         initCaches();
 
         if (loggerDirect.isTraceEnabled()) loggerDirect.trace("ExecutionContextImpl initialized");
+    }
+
+    private UserFacade createSampleUserFacadeImpl(){
+        String userFacadeImplClassName = this.ecfi.confXmlRoot.first("user-facade").attribute("class") ?: "org.moqui.impl.context.UserFacadeImpl"
+
+        Class<UserFacade> userFacadeClass = Thread.currentThread().getContextClassLoader().loadClass(userFacadeImplClassName)
+        UserFacade userFacade = userFacadeClass.newInstance()
+        return userFacade
     }
 
     @SuppressWarnings("unchecked")
@@ -217,5 +219,22 @@ class ExecutionContextImpl implements ExecutionContext{
         }
 
         return resourceFacade
+    }
+
+    @Override
+    Object getLogger(){
+        if(loggerFacade == null) {
+            synchronized (ExecutionContextImpl.class) {
+                if (loggerFacade == null) {
+                    def name = "org.moqui.MoquiLogger"
+
+                    Class<?> moquiLoggerClass = Thread.currentThread().getContextClassLoader().loadClass(name)
+                    Method loggerMethod = moquiLoggerClass.getMethod("getLogger")
+                    loggerFacade = loggerMethod.invoke(null)
+                }
+            }
+        }
+
+        return loggerFacade
     }
 }

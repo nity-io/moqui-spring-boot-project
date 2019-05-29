@@ -17,14 +17,20 @@
 package io.nity.moqui.cache.autoconfigure
 
 import groovy.transform.CompileStatic
+import io.nity.moqui.spring.SpringContextUtil
 import org.moqui.cache.impl.context.CacheExecutionContextFactoryImpl
 import org.moqui.context.CacheFacade
+import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @CompileStatic
 @Configuration
 class MoquiCacheAutoConfiguration {
+
+    MoquiCacheAutoConfiguration(ApplicationContext applicationContext) {
+        SpringContextUtil.setApplicationContext(applicationContext)
+    }
 
     @Bean
     CacheExecutionContextFactoryImpl cacheExecutionContextFactory() {

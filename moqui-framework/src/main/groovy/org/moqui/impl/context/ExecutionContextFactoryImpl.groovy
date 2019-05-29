@@ -36,6 +36,7 @@ import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.jar.Attributes
+import java.util.jar.JarFile
 import java.util.jar.Manifest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -222,6 +223,67 @@ abstract class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         return baseConfigNode
     }
 
+    /** Setup the cached ClassLoader, this should init in the main thread so we can set it properly */
+    protected void initClassLoader() {
+        long startTime = System.currentTimeMillis()
+
+        ClassLoader pcl = (Thread.currentThread().getContextClassLoader() ?: this.class.classLoader) ?: System.classLoader
+        moquiClassLoader = new MClassLoader(pcl)
+
+        setGroovyClassLoader(new GroovyClassLoader(moquiClassLoader))
+
+        File scriptClassesDir = new File(runtimePath ?: "." + "/script-classes")
+        scriptClassesDir.mkdirs()
+        if (groovyCompileCacheToDisk) moquiClassLoader.addClassesDirectory(scriptClassesDir)
+        groovyCompilerConf = new CompilerConfiguration()
+        groovyCompilerConf.setTargetDirectory(scriptClassesDir)
+
+        // add runtime/classes jar files to the class loader
+        File runtimeClassesFile = new File(runtimePath ?: "." + "/classes")
+        if (runtimeClassesFile.exists()) {
+            moquiClassLoader.addClassesDirectory(runtimeClassesFile)
+        }
+        // add runtime/lib jar files to the class loader
+        File runtimeLibFile = new File(runtimePath ?: "." + "/lib")
+        if (runtimeLibFile.exists()) for (File jarFile: runtimeLibFile.listFiles()) {
+            if (jarFile.getName().endsWith(".jar")) {
+                moquiClassLoader.addJarFile(new JarFile(jarFile), jarFile.toURI().toURL())
+                logger.info("Added JAR from runtime/lib: ${jarFile.getName()}")
+            }
+        }
+
+        // add <component>/classes and <component>/lib jar files to the class loader now that component locations loaded
+        for (ComponentInfo ci in componentInfoMap.values()) {
+            ResourceReference classesRr = ci.componentRr.getChild("classes")
+            if (classesRr.exists && classesRr.supportsDirectory() && classesRr.isDirectory()) {
+                moquiClassLoader.addClassesDirectory(new File(classesRr.getUrl().getPath()))
+            }
+
+            ResourceReference libRr = ci.componentRr.getChild("lib")
+            if (libRr.exists && libRr.supportsDirectory() && libRr.isDirectory()) {
+                Set<String> jarsLoaded = new LinkedHashSet<>()
+                for (ResourceReference jarRr: libRr.getDirectoryEntries()) {
+                    if (jarRr.fileName.endsWith(".jar")) {
+                        try {
+                            moquiClassLoader.addJarFile(new JarFile(new File(jarRr.getUrl().getPath())), jarRr.getUrl())
+                            jarsLoaded.add(jarRr.getFileName())
+                        } catch (Exception e) {
+                            logger.error("Could not load JAR from component ${ci.name}: ${jarRr.getLocation()}: ${e.toString()}")
+                        }
+                    }
+                }
+                logger.info("Added JARs from component ${ci.name}: ${jarsLoaded}")
+            }
+        }
+
+        // clear not found info just in case anything was falsely added
+        moquiClassLoader.clearNotFoundInfo()
+        // set as context classloader
+        Thread.currentThread().setContextClassLoader(groovyClassLoader)
+
+        logger.info("Initialized ClassLoader in ${System.currentTimeMillis() - startTime}ms")
+    }
+
     // NOTE: using unbound LinkedBlockingQueue, so max pool size in ThreadPoolExecutor has no effect
     private static class WorkerThreadFactory implements ThreadFactory {
         private final ThreadGroup workerGroup = new ThreadGroup("MoquiWorkers")
@@ -266,12 +328,16 @@ abstract class ExecutionContextFactoryImpl implements ExecutionContextFactory {
     Map getVersionMap() { return versionMap }
     @Override @Nonnull
     MNode getConfXmlRoot() { return confXmlRoot }
-    MNode getServerStatsNode() { return serverStatsNode }
+    @Override
+    MNode getServerStatsNode() {
+        return serverStatsNode
+    }
     MNode getArtifactExecutionNode(String artifactTypeEnumId) {
         return confXmlRoot.first("artifact-execution-facade")
                 .first({ MNode it -> it.name == "artifact-execution" && it.attribute("type") == artifactTypeEnumId })
     }
 
+    @Override
     InetAddress getLocalhostAddress() { return localhostAddress }
 
     // NOTE: may not be used
@@ -813,6 +879,7 @@ abstract class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         if (overrideNode.hasChild("user-facade")) {
             MNode ufBaseNode = baseNode.first("user-facade")
             MNode ufOverrideNode = overrideNode.first("user-facade")
+            ufBaseNode.attributes.putAll(ufOverrideNode.attributes)
             ufBaseNode.mergeSingleChild(ufOverrideNode, "password")
             ufBaseNode.mergeSingleChild(ufOverrideNode, "login-key")
             ufBaseNode.mergeSingleChild(ufOverrideNode, "login")
