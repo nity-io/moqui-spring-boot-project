@@ -26,6 +26,7 @@ include "moqui-entity:moqui-entity-spring-boot-sample"
 include "moqui-web:moqui-web-framework"
 include "moqui-web:moqui-web-spring-boot-starter"
 include "moqui-web:moqui-web-spring-boot-sample"
+include "moqui-web:moqui-web-spring-boot-sample-static"
 
 project(':moqui-util').projectDir = new File('moqui-util')
 project(':moqui-framework').projectDir = new File('moqui-framework')

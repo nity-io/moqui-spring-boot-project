@@ -1,8 +1,9 @@
+<#assign STATIC_PREFIX="/static"/>
 ${sri.getAfterScreenWriterText()}
 
 <#-- Footer JavaScript -->
 <#list footer_scripts?if_exists as scriptLocation>
-    <script src="${sri.buildUrl(scriptLocation).url}"></script>
+    <script src="${STATIC_PREFIX}${scriptLocation}"></script>
 </#list>
 <#assign scriptText = sri.getScriptWriterText()>
 <#if scriptText?has_content>
