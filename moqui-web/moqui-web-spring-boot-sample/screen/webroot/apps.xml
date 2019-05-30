@@ -62,7 +62,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <section name="TopNavSection" condition="hideNav != 'true'"><widgets>
             <container id="top">
-                <render-mode><text type="html" location="component://webroot/screen/includes/navbar.html.ftl"/></render-mode>
+                <render-mode><text type="html" location="classpath://screen/includes/navbar.html.ftl"/></render-mode>
                 <subscreens-menu type="popup" id="header-menu" title="Application"/>
             </container>
         </widgets></section>

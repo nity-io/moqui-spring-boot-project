@@ -54,17 +54,17 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <subscreens default-item="vapps">
-        <subscreens-item name="toolstatic" location="component://tools/screen/toolstatic.xml" menu-include="false"/>
+        <subscreens-item name="toolstatic" location="classpath://screen/tools/toolstatic.xml" menu-include="false"/>
         <!-- add UNDECORATED (or self-decorating) app roots here -->
     </subscreens>
     <widgets>
         <render-mode>
-            <text type="html" location="component://webroot/screen/includes/Header.html.ftl" no-boundary-comment="true"/>
-            <text type="xsl-fo" location="component://webroot/screen/includes/Header.xsl-fo.ftl" no-boundary-comment="true"/>
+            <text type="html" location="classpath://screen/includes/Header.html.ftl" no-boundary-comment="true"/>
+            <text type="xsl-fo" location="classpath://screen/includes/Header.xsl-fo.ftl" no-boundary-comment="true"/>
         </render-mode>
         <render-mode><text template="true">${sri.renderSubscreen()}</text></render-mode>
         <render-mode>
-            <text type="html" location="component://webroot/screen/includes/Footer.html.ftl"/>
+            <text type="html" location="classpath://screen/includes/Footer.html.ftl"/>
             <text type="xsl-fo"><![CDATA[${sri.getAfterScreenWriterText()}</fo:flow></fo:page-sequence></fo:root>]]></text>
         </render-mode>
     </widgets>

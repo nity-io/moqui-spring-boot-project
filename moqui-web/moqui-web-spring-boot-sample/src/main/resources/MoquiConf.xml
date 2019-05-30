@@ -53,6 +53,13 @@ limitations under the License.
     <user-facade class="io.nity.moqui.web.sample.SampleUserFacadeImpl">
     </user-facade>
 
+    <screen-facade>
+        <screen location="classpath://screen/webroot/apps.xml">
+            <subscreens-item name="system" menu-title="System" menu-index="98" location="classpath://screen/tools/System.xml"/>
+            <subscreens-item name="tools" menu-title="Tools" menu-index="99" location="classpath://screen/tools/Tools.xml"/>
+        </screen>
+    </screen-facade>
+
     <entity-facade>
         <load-entity location="classpath://entity/SampleEntities.xml"/>
     </entity-facade>

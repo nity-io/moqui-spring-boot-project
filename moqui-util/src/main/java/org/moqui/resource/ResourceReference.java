@@ -195,8 +195,13 @@ public abstract class ResourceReference implements Serializable {
             if (relativePath.charAt(0) != '/') fileLoc.append('/');
             fileLoc.append(relativePath);
 
+            int lastIndexOf = relativePath.lastIndexOf(".");
+            if(lastIndexOf < 0){
+                fileLoc.append(".xml");
+            }
+
             ResourceReference theFile = createNew(fileLoc.toString());
-            if (theFile.getExists() && theFile.isFile()) childRef = theFile;
+            if (theFile.getExists()) childRef = theFile;
 
             // logger.warn("============= finding child resource path [${relativePath}] childRef [${childRef}]")
             if (childRef == null) {
@@ -314,18 +319,18 @@ public abstract class ResourceReference implements Serializable {
 
         // find check exact filename first
         ResourceReference exactMatchRef = directoryRef.getChild(childFilename);
-        if (exactMatchRef.isFile() && exactMatchRef.getExists()) return exactMatchRef;
+        if (exactMatchRef.getExists()) return exactMatchRef;
 
         List<ResourceReference> childEntries = directoryRef.getDirectoryEntries();
         // look through all files first, ie do a breadth-first search
         for (ResourceReference childRef : childEntries) {
-            if (childRef.isFile() && (childRef.getFileName().equals(childFilename) || childRef.getFileName().startsWith(childFilename + "."))) {
+            if (childRef.getLocation().equals(childFilename) || childRef.getLocation().startsWith(childFilename + ".")) {
                 return childRef;
             }
         }
 
         for (ResourceReference childRef : childEntries) {
-            if (childRef.isDirectory()) {
+            if (!childRef.getUrl().getProtocol().equals("classpath") && childRef.isDirectory()) {
                 ResourceReference subRef = internalFindChildFile(childRef, childFilename);
                 if (subRef != null) return subRef;
             }

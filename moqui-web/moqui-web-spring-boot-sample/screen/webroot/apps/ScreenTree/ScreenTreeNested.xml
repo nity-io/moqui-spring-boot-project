@@ -38,7 +38,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <fail-widgets><label text="${currentSubscreensItem.menuTitle}" style="text-muted"/></fail-widgets>
                             </section>
 
-                            <include-screen location="component://webroot/screen/webroot/apps/ScreenTree/ScreenTreeNested.xml"
+                            <include-screen location="classpath://screen/webroot/apps/ScreenTree/ScreenTreeNested.xml"
                                     share-scope="false"/>
                         </widgets>
                         <fail-widgets>

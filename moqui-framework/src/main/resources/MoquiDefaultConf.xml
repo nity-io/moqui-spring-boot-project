@@ -114,7 +114,7 @@
                 https-host="${webapp_http_host}" https-enabled="${webapp_https_enabled}"
                 require-session-token="true" websocket-timeout="600000">
             <!-- root and error screens for OOTB runtime directory (moqui/moqui-runtime repository) -->
-            <root-screen host=".*" location="component://webroot/screen/webroot.xml"/>
+            <root-screen host=".*" location="classpath://screen/webroot.xml"/>
 
             <error-screen error="unauthorized" screen-path="error/Unauthorized"/>
             <error-screen error="forbidden" screen-path="error/Forbidden"/>

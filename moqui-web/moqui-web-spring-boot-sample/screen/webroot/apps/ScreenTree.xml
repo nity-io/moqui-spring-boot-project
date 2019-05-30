@@ -24,7 +24,7 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <label text="Site Map" type="h2"/>
-        <include-screen location="component://webroot/screen/webroot/apps/ScreenTree/ScreenTreeNested.xml"
+        <include-screen location="classpath://screen/webroot/apps/ScreenTree/ScreenTreeNested.xml"
                 share-scope="false"/>
 
         <link url="." text="Show All" parameter-map="[showAll:'true']" link-type="anchor" style="text-muted" condition="showAll != 'true'"/>

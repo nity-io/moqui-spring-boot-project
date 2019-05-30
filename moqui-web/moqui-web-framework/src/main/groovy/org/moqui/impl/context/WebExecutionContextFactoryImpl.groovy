@@ -327,7 +327,7 @@ class WebExecutionContextFactoryImpl extends ExecutionContextFactoryImpl impleme
         def heapMemoryUsage = memoryMXBean.getHeapMemoryUsage()
         def nonHeapMemoryUsage = memoryMXBean.getNonHeapMemoryUsage()
 
-        def runtimeFile = new File(runtimePath)
+        def runtimeFile = new File(".")
 
         def osMXBean = ManagementFactory.getOperatingSystemMXBean()
         def runtimeMXBean = ManagementFactory.getRuntimeMXBean()
@@ -379,7 +379,7 @@ class WebExecutionContextFactoryImpl extends ExecutionContextFactoryImpl impleme
                            ClassesLoaded:classMXBean.getLoadedClassCount(), ClassesTotalLoaded:classMXBean.getTotalLoadedClassCount(),
                            ClassesUnloaded:classMXBean.getUnloadedClassCount(), ThreadCount:threadMXBean.getThreadCount(),
                            PeakThreadCount:threadMXBean.getPeakThreadCount() ] as Map<String, Object>,
-            DataSources: entityFacade.getDataSourcesInfo()
+//            DataSources: entityFacade.getDataSourcesInfo()
         ]
         return statusMap
     }

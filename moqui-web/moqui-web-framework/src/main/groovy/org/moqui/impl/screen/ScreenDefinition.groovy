@@ -14,6 +14,7 @@
 package org.moqui.impl.screen
 
 import groovy.transform.CompileStatic
+import org.apache.commons.io.FilenameUtils
 import org.codehaus.groovy.runtime.InvokerHelper
 import org.moqui.BaseArtifactException
 import org.moqui.BaseException
@@ -35,6 +36,7 @@ import org.moqui.impl.context.ArtifactExecutionInfoImpl
 import org.moqui.impl.context.ExecutionContextImpl
 import org.moqui.util.ContextStack
 import org.moqui.util.MNode
+import org.moqui.util.ObjectUtilities
 import org.moqui.util.StringUtilities
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -252,7 +254,7 @@ class ScreenDefinition {
         String cleanLocationBase = location.substring(0, location.lastIndexOf("."))
         ResourceReference locationRef = sfi.ecfi.getResource().getLocationReference(location)
         if (logger.traceEnabled) logger.trace("Finding subscreens for screen at [${locationRef}]")
-        if (locationRef.supportsAll()) {
+        if (false && locationRef.supportsAll()) {
             String subscreensDirStr = locationRef.location
             subscreensDirStr = subscreensDirStr.substring(0, subscreensDirStr.lastIndexOf("."))
 
@@ -373,7 +375,31 @@ class ScreenDefinition {
     Collection<TransitionItem> getAllTransitions() { return transitionByName.values() }
 
     SubscreensItem getSubscreensItem(String name) {
-        return (SubscreensItem) subscreensByName.get(name)
+        SubscreensItem subscreensItem = (SubscreensItem) subscreensByName.get(name)
+        if(subscreensItem != null){
+            return subscreensItem
+        }
+
+        String extension = FilenameUtils.getExtension(name)
+        if(!ObjectUtilities.isEmpty(extension)){
+            return subscreensItem
+        }
+
+        String cleanLocationBase = this.getLocation().substring(0, this.getLocation().lastIndexOf(".")) + "/" + name
+        String location = cleanLocationBase + ".xml";
+        ResourceReference subscreenRef = sfi.ecfi.getResource().getLocationReference(location)
+        MNode subscreenRoot = MNode.parse(subscreenRef)
+
+        if(subscreenRoot == null){
+            return subscreensItem
+        }
+
+        SubscreensItem si = new SubscreensItem(name, location, subscreenRoot, this)
+        subscreensByName.put(si.name, si)
+
+        if (logger.traceEnabled) logger.trace("Added Screen XML defined subscreen [${si.name}] at [${si.location}] to screen [${subscreenRef}]")
+
+        return si
     }
 
     ArrayList<String> findSubscreenPath(ArrayList<String> remainingPathNameList) {

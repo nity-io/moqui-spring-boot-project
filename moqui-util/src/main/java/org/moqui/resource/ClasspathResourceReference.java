@@ -13,6 +13,8 @@
  */
 package org.moqui.resource;
 
+import java.net.URL;
+
 public class ClasspathResourceReference extends UrlResourceReference {
     private String strippedLocation;
 
@@ -42,4 +44,12 @@ public class ClasspathResourceReference extends UrlResourceReference {
     }
 
     @Override public String getLocation() { return "classpath://" + strippedLocation; }
+
+    @Override
+    public boolean getExists() {
+        // only count exists if true
+        if (exists != null && exists) return true;
+
+        return false;
+    }
 }

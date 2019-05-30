@@ -55,6 +55,7 @@ public class MNode implements TemplateNodeModel, TemplateSequenceModel, Template
         MNode cached = parsedNodeCache.get(location);
         if (cached != null && cached.lastModified >= rr.getLastModified()) return cached;
 
+        logger.info("parse:{}", location);
         MNode node = parse(location, rr.openStream());
         node.lastModified = rr.getLastModified();
         if (node.lastModified > 0) parsedNodeCache.put(location, node);

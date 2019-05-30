@@ -103,6 +103,6 @@ class SystemScreenRenderTests extends Specification {
         "Security/UserGroup/GroupUsers?userGroupId=ADMIN" | "john.doe - John Doe" | ""
         "Security/ArtifactGroup/ArtifactGroupList" | "All Screens" | ""
         "Security/ArtifactGroup/ArtifactGroupDetail?artifactGroupId=SYSTEM_APP" |
-                "component://tools/screen/System.xml" | "Administrators (full access)"
+                "classpath://screen/tools/System.xml" | "Administrators (full access)"
     }
 }
