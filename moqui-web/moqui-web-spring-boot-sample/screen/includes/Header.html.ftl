@@ -1,4 +1,4 @@
-<#assign STATIC_PREFIX="/static"/>
+<#assign STATIC_PREFIX = Static["java.lang.System"].getProperty("static_prefix")!"">
 <!DOCTYPE HTML>
 <html>
 <head>

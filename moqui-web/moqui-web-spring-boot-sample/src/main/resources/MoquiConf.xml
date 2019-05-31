@@ -17,6 +17,7 @@ limitations under the License.
 <moqui-conf xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/moqui-conf-2.1.xsd">
 
     <default-property name="instance_purpose" value="dev"/>
+    <default-property name="static_prefix" value=""/>
 
     <default-property name="entity_ds_db_conf" value="h2"/>
 
