@@ -59,7 +59,9 @@ public class WebExecutionContextImpl implements WebExecutionContext {
 
         initCaches();
 
-        if (loggerDirect.isTraceEnabled()) loggerDirect.trace("ExecutionContextImpl initialized");
+        if (loggerDirect.isTraceEnabled()){
+            loggerDirect.trace("ExecutionContextImpl initialized");
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -86,8 +88,10 @@ public class WebExecutionContextImpl implements WebExecutionContext {
         return ecfi.getTool(toolName, instanceClass, parameters);
     }
 
-    @Override public @Nullable
-    WebFacade getWeb() { return webFacade; }
+    @Override
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public  <T> T getWeb() { return (T) webFacade; }
     public @Nullable
     WebFacadeImpl getWebImpl() { return webFacadeImpl; }
 
@@ -99,20 +103,30 @@ public class WebExecutionContextImpl implements WebExecutionContext {
     ArtifactExecutionFacade getArtifactExecution() { return ec.getArtifactExecution(); }
     @Override public @Nonnull
     L10nFacade getL10n() { return ec.getL10n(); }
-    @Override public @Nonnull
-    ResourceFacade getResource() { return ecfi.getResource(); }
-    @Override public @Nonnull
-    LoggerFacade getLogger() { return ecfi.getLogger(); }
+
+    @Override
+    @Nonnull
+    @SuppressWarnings("unchecked")
+    public <T> T getResource() { return (T) ecfi.getResource(); }
+
+    @Override
+    @Nonnull
+    @SuppressWarnings("unchecked")
+    public <T> T getLogger() { return (T) ecfi.getLogger(); }
     @Override public @Nonnull
     CacheFacade getCache() { return ecfi.getCache(); }
     @Override public @Nonnull
     TransactionFacade getTransaction() { return ecfi.getTransaction(); }
 
-    @Override public @Nonnull
-    EntityFacade getEntity() { return ecfi.getEntity(); }
+    @Override
+    @Nonnull
+    @SuppressWarnings("unchecked")
+    public <T> T getEntity() { return (T) ecfi.getEntity(); }
 
-    @Override public @Nonnull
-    ServiceFacade getService() { return ecfi.getService(); }
+    @Override
+    @Nonnull
+    @SuppressWarnings("unchecked")
+    public <T> T getService() { return (T) ecfi.getService(); }
     @Override public @Nonnull
     ScreenFacade getScreen() { return ecfi.getScreen(); }
 
@@ -121,14 +135,19 @@ public class WebExecutionContextImpl implements WebExecutionContext {
 
     @Override
     public @Nonnull List<NotificationMessage> getNotificationMessages(@Nullable String topic) {
+        EntityFacade entityFacade = getEntity();
         String userId = getUser().getUserId();
-        if (userId == null || userId.isEmpty()) return new ArrayList<>();
+        if (userId == null || userId.isEmpty()){
+            return new ArrayList<>();
+        }
 
         List<NotificationMessage> nmList = new ArrayList<>();
         boolean alreadyDisabled = getArtifactExecution().disableAuthz();
         try {
-            EntityFind nmbuFind = getEntity().find("moqui.security.user.NotificationMessageByUser").condition("userId", userId);
-            if (topic != null && !topic.isEmpty()) nmbuFind.condition("topic", topic);
+            EntityFind nmbuFind = entityFacade.find("moqui.security.user.NotificationMessageByUser").condition("userId", userId);
+            if (topic != null && !topic.isEmpty()){
+                nmbuFind.condition("topic", topic);
+            }
             EntityList nmbuList = nmbuFind.list();
             for (EntityValue nmbu : nmbuList) {
                 NotificationMessageImpl nmi = new NotificationMessageImpl(ecfi);
@@ -136,7 +155,9 @@ public class WebExecutionContextImpl implements WebExecutionContext {
                 nmList.add(nmi);
             }
         } finally {
-            if (!alreadyDisabled) getArtifactExecution().enableAuthz();
+            if (!alreadyDisabled){
+                getArtifactExecution().enableAuthz();
+            }
         }
 
         return nmList;
@@ -156,18 +177,26 @@ public class WebExecutionContextImpl implements WebExecutionContext {
         wfi.runBeforeRequestActions();
 
         String userId = this.getUser().getUserId();
-        if (userId != null && !userId.isEmpty()) MDC.put("moqui_userId", userId);
+        if (userId != null && !userId.isEmpty()){
+            MDC.put("moqui_userId", userId);
+        }
         String visitorId = this.getUser().getVisitorId();
-        if (visitorId != null && !visitorId.isEmpty()) MDC.put("moqui_visitorId", visitorId);
+        if (visitorId != null && !visitorId.isEmpty()){
+            MDC.put("moqui_visitorId", visitorId);
+        }
 
-        if (loggerDirect.isTraceEnabled()) loggerDirect.trace("ExecutionContextImpl WebFacade initialized");
+        if (loggerDirect.isTraceEnabled()){
+            loggerDirect.trace("ExecutionContextImpl WebFacade initialized");
+        }
     }
 
     /** Meant to be used to set a test stub that implements the WebFacade interface */
     @Override
     public void setWebFacade(WebFacade wf) {
         webFacade = wf;
-        if (wf instanceof WebFacadeImpl) webFacadeImpl = (WebFacadeImpl) wf;
+        if (wf instanceof WebFacadeImpl){
+            webFacadeImpl = (WebFacadeImpl) wf;
+        }
         this.getContext().putAll(webFacade.getRequestParameters());
     }
 
@@ -190,14 +219,18 @@ public class WebExecutionContextImpl implements WebExecutionContext {
     @Override
     public void destroy() {
         // if webFacade exists this is the end of a request, so trigger after-request actions
-        if (webFacadeImpl != null) webFacadeImpl.runAfterRequestActions();
+        if (webFacadeImpl != null){
+            webFacadeImpl.runAfterRequestActions();
+        }
 
         ec.destroy();
 
         WebExecutionContextFactoryImpl.activeWebContext.remove();
         WebExecutionContextFactoryImpl.activeWebContextMap.remove(Thread.currentThread().getId());
 
-        if (loggerDirect.isTraceEnabled()) loggerDirect.trace("WebExecutionContextImpl destroyed");
+        if (loggerDirect.isTraceEnabled()){
+            loggerDirect.trace("WebExecutionContextImpl destroyed");
+        }
     }
 
     @Override
@@ -232,13 +265,17 @@ public class WebExecutionContextImpl implements WebExecutionContext {
 
         @Override
         public void run() {
-            if (threadEci != null) ecfi.useExecutionContextInThread(threadEci);
+            if (threadEci != null){
+                ecfi.useExecutionContextInThread(threadEci);
+            }
             try {
                 closure.call();
             } catch (Throwable t) {
                 loggerDirect.error("Error in EC worker Runnable", t);
             } finally {
-                if (threadEci == null) ecfi.destroyActiveExecutionContext();
+                if (threadEci == null){
+                    ecfi.destroyActiveExecutionContext();
+                }
             }
         }
 

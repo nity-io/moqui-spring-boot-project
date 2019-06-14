@@ -28,6 +28,9 @@ import java.util.LinkedHashMap;
  */
 public interface ServiceExecutionContextFactory extends ExecutionContextFactory{
 
+    /** Called after construction but before registration with Moqui/Servlet, check for empty database and load configured data. */
+    boolean checkEmptyDb();
+
     /** Destroy this ExecutionContextFactory and all resources it uses (all facades, tools, etc) */
     void destroy();
     boolean isDestroyed();

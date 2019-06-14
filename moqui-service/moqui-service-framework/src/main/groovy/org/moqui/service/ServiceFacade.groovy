@@ -14,6 +14,7 @@
 package org.moqui.service;
 
 import org.moqui.context.ServiceExecutionContextFactory
+import org.moqui.entity.EntityDataLoader
 import org.moqui.impl.service.ServiceDefinition
 import org.moqui.util.RestClient;
 
@@ -25,11 +26,28 @@ public interface ServiceFacade {
 
     void destroy();
 
+    boolean isServiceDefined(String serviceName);
+
     boolean isEntityAutoPattern(String serviceName);
 
     boolean isEntityAutoPattern(String path, String verb, String noun);
 
     ServiceDefinition getServiceDefinition(String serviceName);
+
+    // ======= Import/Export (XML, CSV, etc) Related Methods ========
+
+    /** Make an object used to load XML or CSV entity data into the database or into an EntityList. The files come from
+     * a specific location, text already read from somewhere, or by searching all component data directories
+     * and the entity-facade.load-data elements for entity data files that match a type in the Set of types
+     * specified.
+     *
+     * An XML document should have a root element like <code>&lt;entity-facade-xml type=&quot;seed&quot;&gt;</code>. The
+     * type attribute will be used to determine if the file should be loaded by whether or not it matches the values
+     * specified for data types on the loader.
+     *
+     * @return EntityDataLoader instance
+     */
+    EntityDataLoader makeDataLoader();
 
     /** Get a service caller to call a service synchronously. */
     ServiceCallSync sync();

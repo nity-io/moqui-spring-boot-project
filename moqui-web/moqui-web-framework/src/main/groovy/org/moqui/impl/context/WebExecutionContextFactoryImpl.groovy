@@ -151,6 +151,11 @@ class WebExecutionContextFactoryImpl extends ExecutionContextFactoryImpl impleme
 
     }
 
+    @Override
+    boolean checkEmptyDb() {
+        return false
+    }
+
     @Override void destroy() {
         if (destroyed.getAndSet(true)) {
             logger.warn("Not destroying ExecutionContextFactory, already destroyed (or destroying)")
@@ -358,7 +363,8 @@ class WebExecutionContextFactoryImpl extends ExecutionContextFactoryImpl impleme
         long diskTotalSpace = runtimeFile.getTotalSpace()
         BigDecimal diskPercent = (((diskTotalSpace - diskFreeSpace) / diskTotalSpace) * 100.0).setScale(2, BigDecimal.ROUND_HALF_UP)
 
-        HttpServletRequest request = getEci().getWeb()?.getRequest()
+        WebFacade webFacade = getEci().getWeb()
+        HttpServletRequest request = webFacade?.getRequest()
         Map<String, Object> statusMap = [ MoquiFramework:moquiVersion,
             Utilization: [LoadPercent:loadPercent, HeapPercent:heapPercent, DiskPercent:diskPercent],
             Web: [ LocalAddr:request?.getLocalAddr(), LocalPort:request?.getLocalPort(), LocalName:request?.getLocalName(),

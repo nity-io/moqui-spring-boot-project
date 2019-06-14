@@ -59,15 +59,6 @@ public class MoquiEntity {
 
         K newEcf = ecfClass.newInstance();
         activeExecutionContextFactory = newEcf;
-        // check for an empty DB
-        if (newEcf.checkEmptyDb()) {
-            logger.warn("Data loaded into empty DB, re-initializing ExecutionContextFactory");
-            // destroy old ECFI
-            newEcf.destroy();
-            // create new ECFI to get framework init data from DB
-            newEcf = ecfClass.newInstance();
-            activeExecutionContextFactory = newEcf;
-        }
 
         if (sc != null) {
             // tell ECF about the ServletContext

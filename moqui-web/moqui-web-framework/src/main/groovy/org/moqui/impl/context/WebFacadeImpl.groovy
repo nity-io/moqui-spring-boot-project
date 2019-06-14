@@ -21,6 +21,7 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory
 import org.apache.commons.fileupload.servlet.ServletFileUpload
 import org.moqui.context.*
 import org.moqui.context.MessageFacade.MessageInfo
+import org.moqui.entity.EntityFacade
 import org.moqui.entity.EntityFind
 import org.moqui.entity.EntityNotFoundException
 import org.moqui.entity.EntityValue
@@ -28,10 +29,12 @@ import org.moqui.entity.EntityValueNotFoundException
 import org.moqui.impl.context.WebExecutionContextFactoryImpl.WebappInfo
 import org.moqui.impl.screen.ScreenDefinition
 import org.moqui.impl.screen.ScreenUrlInfo
+import org.moqui.impl.service.RestApi
 import org.moqui.impl.service.ServiceJsonRpcDispatcher
 import org.moqui.impl.service.ServiceXmlRpcDispatcher
 import org.moqui.impl.util.SimpleSigner
 import org.moqui.resource.ResourceReference
+import org.moqui.service.ServiceFacade
 import org.moqui.util.ContextStack
 import org.moqui.util.ObjectUtilities
 import org.moqui.util.StringUtilities
@@ -79,6 +82,8 @@ class WebFacadeImpl implements WebFacade {
     protected List<MessageInfo> savedPublicMessages = (List<MessageInfo>) null
     protected List<String> savedErrors = (List<String>) null
     protected List<ValidationError> savedValidationErrors = (List<ValidationError>) null
+
+    public final RestApi restApi
 
     WebFacadeImpl(String webappMoquiName, HttpServletRequest request, HttpServletResponse response,
                   WebExecutionContext eci) {
@@ -198,6 +203,10 @@ class WebFacadeImpl implements WebFacade {
             session.setAttribute("moqui.session.token", sessionToken)
             request.setAttribute("moqui.session.token.created", "true")
         }
+
+        // load REST API
+        ServiceFacade serviceFacade = eci.getService()
+        restApi = new RestApi(serviceFacade.getFactory())
     }
 
     /** Apache Commons FileUpload does not support string array so when using multiple select and there's a duplicate
@@ -289,7 +298,8 @@ class WebFacadeImpl implements WebFacade {
         }
         // append target screen name
         if (targetMenuName.contains('${')) {
-            nameBuilder.append(eci.getResource().expand(targetMenuName, targetScreen.getLocation()))
+            ResourceFacade resourceFacade = eci.getResource()
+            nameBuilder.append(resourceFacade.expand(targetMenuName, targetScreen.getLocation()))
         } else {
             nameBuilder.append(targetMenuName)
             // append parameter values
@@ -706,6 +716,7 @@ class WebFacadeImpl implements WebFacade {
         }
     }
 
+    @Override
     void sendJsonError(int statusCode, String errorMessages) {
         // NOTE: uses same field name as sendJsonResponseInternal
         String jsonStr = ContextJavaUtil.jacksonMapper.writeValueAsString([errorCode:statusCode, errors:errorMessages])
@@ -788,8 +799,8 @@ class WebFacadeImpl implements WebFacade {
         if (contentType) response.setContentType(contentType)
         if (inline) {
             response.addHeader("Content-Disposition", "inline")
-
-            WebappInfo webappInfo = ecf.getWebappInfo(eci.getWeb()?.getWebappMoquiName())
+            WebFacade webFacade = eci.getWeb()
+            WebappInfo webappInfo = ecf.getWebappInfo(webFacade?.getWebappMoquiName())
             if (webappInfo != null) {
                 webappInfo.addHeaders("web-resource-inline", response)
             } else {
@@ -987,16 +998,17 @@ class WebFacadeImpl implements WebFacade {
             return
         }
 
+        EntityFacade entityFacade = eci.getEntity()
         try {
             // make sure systemMessageTypeId and systemMessageRemoteId are valid before the service call
-            EntityFind entityFind = eci.getEntity().find("moqui.service.message.SystemMessageType")
+            EntityFind entityFind = entityFacade.find("moqui.service.message.SystemMessageType")
                     .condition("systemMessageTypeId", systemMessageTypeId).disableAuthz();
             EntityValue systemMessageType = entityFind.one()
             if (systemMessageType == null) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Message type ${systemMessageTypeId} not valid")
                 return
             }
-            EntityValue systemMessageRemote = eci.getEntity().find("moqui.service.message.SystemMessageRemote")
+            EntityValue systemMessageRemote = entityFacade.find("moqui.service.message.SystemMessageRemote")
                     .condition("systemMessageRemoteId", systemMessageRemoteId).disableAuthz().one()
             if (systemMessageRemote == null) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Remote system ${systemMessageRemoteId} not valid")
@@ -1054,8 +1066,9 @@ class WebFacadeImpl implements WebFacade {
                 return
             }
 
+            ServiceFacade serviceFacade = eci.getService()
             // NOTE: called with disableAuthz() since we do an authz check before when needed
-            Map<String, Object> result = eci.getService().sync().name("org.moqui.impl.SystemMessageServices.receive#IncomingSystemMessage")
+            Map<String, Object> result = serviceFacade.sync().name("org.moqui.impl.SystemMessageServices.receive#IncomingSystemMessage")
                     .parameter("systemMessageTypeId", systemMessageTypeId).parameter("systemMessageRemoteId", systemMessageRemoteId)
                     .parameter("remoteMessageId", remoteMessageId).parameter("messageText", messageText).disableAuthz().call()
 
@@ -1149,6 +1162,8 @@ class WebFacadeImpl implements WebFacade {
         response.setContentType('image/png')
         response.addHeader("Content-Disposition", "inline")
         OutputStream os = response.outputStream
+        EntityFacade entityFacade= eci.getEntity()
+        ServiceFacade serviceFacade = eci.getService()
         try { os.write(trackingPng) } finally { os.close() }
         // mark the message viewed
         try {
@@ -1156,12 +1171,12 @@ class WebFacadeImpl implements WebFacade {
             if (emailMessageId != null && !emailMessageId.isEmpty()) {
                 int dotIndex = emailMessageId.indexOf(".")
                 if (dotIndex > 0) emailMessageId = emailMessageId.substring(0, dotIndex)
-                EntityValue emailMessage = eci.entity.find("moqui.basic.email.EmailMessage").condition("emailMessageId", emailMessageId)
+                EntityValue emailMessage = entityFacade.find("moqui.basic.email.EmailMessage").condition("emailMessageId", emailMessageId)
                         .disableAuthz().one()
                 if (emailMessage == null) {
                     logger.warn("Tried to mark EmailMessage ${emailMessageId} viewed but not found")
                 } else if (!"ES_VIEWED".equals(emailMessage.statusId)) {
-                    eci.service.sync().name("update#moqui.basic.email.EmailMessage").parameter("emailMessageId", emailMessageId)
+                    serviceFacade.sync().name("update#moqui.basic.email.EmailMessage").parameter("emailMessageId", emailMessageId)
                             .parameter("statusId", "ES_VIEWED").parameter("receivedDate", eci.user.nowTimestamp).disableAuthz().call()
                 }
             }
@@ -1181,5 +1196,15 @@ class WebFacadeImpl implements WebFacade {
         //FileCleaningTracker fileCleaningTracker = FileCleanerCleanup.getFileCleaningTracker(request.getServletContext())
         //factory.setFileCleaningTracker(fileCleaningTracker)
         return factory
+    }
+
+    @Override
+    WebExecutionContextFactory getFactory(){
+        return ecf
+    }
+
+    @Override
+    RestApi getRestApi() {
+        return restApi
     }
 }

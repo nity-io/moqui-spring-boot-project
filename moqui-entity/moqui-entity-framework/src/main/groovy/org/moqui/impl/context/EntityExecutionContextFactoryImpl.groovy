@@ -14,22 +14,18 @@
 package org.moqui.impl.context
 
 import groovy.transform.CompileStatic
-import org.codehaus.groovy.control.CompilerConfiguration
 import org.moqui.BaseException
 import org.moqui.MoquiEntity
 import org.moqui.context.*
 import org.moqui.context.ArtifactExecutionInfo.ArtifactType
-import org.moqui.entity.EntityDataLoader
 import org.moqui.entity.EntityFacade
-import org.moqui.entity.EntityList
-import org.moqui.entity.EntityValue
 import org.moqui.impl.context.ContextJavaUtil.ArtifactBinInfo
 import org.moqui.impl.context.ContextJavaUtil.ArtifactHitInfoEntity
 import org.moqui.impl.context.ContextJavaUtil.ArtifactStatsInfo
 import org.moqui.impl.entity.EntityFacadeImpl
+import org.moqui.entity.EntityValue
 import org.moqui.resource.ResourceReference
 import org.moqui.util.CollectionUtilities
-import org.moqui.util.MClassLoader
 import org.moqui.util.MNode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -42,7 +38,6 @@ import java.lang.management.ManagementFactory
 import java.sql.Timestamp
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
-import java.util.jar.JarFile
 
 @CompileStatic
 class EntityExecutionContextFactoryImpl extends ExecutionContextFactoryImpl implements EntityExecutionContextFactory {
@@ -204,69 +199,7 @@ class EntityExecutionContextFactoryImpl extends ExecutionContextFactoryImpl impl
         this.entityFacade.warmCache()
     }
 
-    /** Called from MoquiContextListener.contextInitialized after ECFI init */
-    @Override boolean checkEmptyDb() {
-        String emptyDbLoad = confXmlRoot.first("tools").attribute("empty-db-load")
-        if (!emptyDbLoad || emptyDbLoad == 'none') return false
 
-        long enumCount = getEntity().find("moqui.basic.Enumeration").disableAuthz().count()
-        if (enumCount == 0) {
-            logger.info("Found ${enumCount} Enumeration records, loading empty-db-load data types (${emptyDbLoad})")
-
-            ExecutionContext ec = getExecutionContext()
-            try {
-                ec.getArtifactExecution().disableAuthz()
-                ec.getArtifactExecution().push("loadData", ArtifactExecutionInfo.AT_OTHER, ArtifactExecutionInfo.AUTHZA_ALL, false)
-                ec.getArtifactExecution().setAnonymousAuthorizedAll()
-                ec.getUser().loginAnonymousIfNoUser()
-
-                EntityDataLoader edl = this.getEntity().makeDataLoader()
-                if (emptyDbLoad != 'all') edl.dataTypes(new HashSet(emptyDbLoad.split(",") as List))
-
-                try {
-                    long startTime = System.currentTimeMillis()
-                    long records = edl.load()
-
-                    logger.info("Loaded [${records}] records (with types: ${emptyDbLoad}) in ${(System.currentTimeMillis() - startTime)/1000} seconds.")
-                } catch (Throwable t) {
-                    logger.error("Error loading empty DB data (with types: ${emptyDbLoad})", t)
-                }
-
-            } finally {
-                ec.destroy()
-            }
-            return true
-        } else {
-            logger.info("Found ${enumCount} Enumeration records, NOT loading empty-db-load data types (${emptyDbLoad})")
-            // if this instance_purpose is test load type 'test' data
-            if ("test".equals(System.getProperty("instance_purpose"))) {
-                logger.warn("Loading 'test' type data (instance_purpose=test)")
-                ExecutionContext ec = getExecutionContext()
-                try {
-                    ec.getArtifactExecution().disableAuthz()
-                    ec.getArtifactExecution().push("loadData", ArtifactExecutionInfo.AT_OTHER, ArtifactExecutionInfo.AUTHZA_ALL, false)
-                    ec.getArtifactExecution().setAnonymousAuthorizedAll()
-                    ec.getUser().loginAnonymousIfNoUser()
-
-                    EntityDataLoader edl = this.getEntity().makeDataLoader()
-                    edl.dataTypes(new HashSet(['test']))
-
-                    try {
-                        long startTime = System.currentTimeMillis()
-                        long records = edl.load()
-
-                        logger.info("Loaded [${records}] records (with type test) in ${(System.currentTimeMillis() - startTime)/1000} seconds.")
-                    } catch (Throwable t) {
-                        logger.error("Error loading empty DB data (with type test)", t)
-                    }
-
-                } finally {
-                    ec.destroy()
-                }
-            }
-            return false
-        }
-    }
 
 
     @Override void destroy() {

@@ -16,19 +16,19 @@ package org.moqui.impl.screen
 import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
 import org.moqui.BaseArtifactException
-import org.moqui.context.EntityExecutionContextFactory
 import org.moqui.context.ExecutionContext
 import org.moqui.context.WebExecutionContext
 import org.moqui.context.WebExecutionContextFactory
+import org.moqui.context.WebFacade
 import org.moqui.entity.*
 import org.moqui.impl.actions.XmlAction
-import org.moqui.impl.context.ExecutionContextImpl
 import org.moqui.impl.entity.*
 import org.moqui.impl.entity.AggregationUtil.AggregateFunction
 import org.moqui.impl.entity.AggregationUtil.AggregateField
 import org.moqui.impl.entity.EntityJavaUtil.RelationshipInfo
 import org.moqui.impl.screen.ScreenDefinition.TransitionItem
 import org.moqui.impl.service.ServiceDefinition
+import org.moqui.service.ServiceFacade
 import org.moqui.util.CollectionUtilities
 import org.moqui.util.ContextStack
 import org.moqui.util.MNode
@@ -1378,9 +1378,11 @@ class ScreenForm {
         }
         EntityValue getActiveFormListFind(WebExecutionContext ec) {
             if (ec.web == null) return null
-            String formListFindId = ec.web.requestParameters.get("formListFindId")
+            WebFacade webFacade = ec.getWeb()
+            String formListFindId = webFacade.requestParameters.get("formListFindId")
             if (!formListFindId) return null
-            EntityValue formListFind = ec.getEntity().fastFindOne("moqui.screen.form.FormListFind", true, false, formListFindId)
+            EntityFacade entityFacade = ec.getEntity()
+            EntityValue formListFind =entityFacade.fastFindOne("moqui.screen.form.FormListFind", true, false, formListFindId)
             // see if this applies to this form-list, may be multiple on the screen
             if (screenForm.location != formListFind.getNoCheckSimple("formLocation")) formListFind = null
             return formListFind
@@ -1484,6 +1486,7 @@ class ScreenForm {
 
         ArrayList<EntityValue> makeFormListFindFields(String formListFindId, WebExecutionContext ec) {
             ContextStack cs = ec.context
+            EntityFacade entityFacade = ec.getEntity()
 
             Set<String> skipSet = null
             MNode entityFindNode = screenForm.entityFindNode
@@ -1513,7 +1516,7 @@ class ScreenForm {
                     // for all operators other than empty skip this if there is no value
                     if (value == null && op != "empty") continue
 
-                    EntityValue ev = ec.getEntity().makeValue("moqui.screen.form.FormListFindField")
+                    EntityValue ev = entityFacade.makeValue("moqui.screen.form.FormListFindField")
                     ev.formListFindId = formListFindId
                     ev.fieldName = fn
                     ev.fieldValue = value
@@ -1522,7 +1525,7 @@ class ScreenForm {
                     ev.fieldIgnoreCase = ic ? "Y" : "N"
                     valueList.add(ev)
                 } else if (cs.get(fn + "_period")) {
-                    EntityValue ev = ec.entity.makeValue("moqui.screen.form.FormListFindField")
+                    EntityValue ev = entityFacade.makeValue("moqui.screen.form.FormListFindField")
                     ev.formListFindId = formListFindId
                     ev.fieldName = fn
                     ev.fieldPeriod = cs.get(fn + "_period")
@@ -1533,7 +1536,7 @@ class ScreenForm {
                     String fromValue = ObjectUtilities.toPlainString(cs.get(fn + "_from"))
                     String thruValue = ObjectUtilities.toPlainString(cs.get(fn + "_thru"))
                     if (fromValue || thruValue) {
-                        EntityValue ev = ec.entity.makeValue("moqui.screen.form.FormListFindField")
+                        EntityValue ev = entityFacade.makeValue("moqui.screen.form.FormListFindField")
                         ev.formListFindId = formListFindId
                         ev.fieldName = fn
                         ev.fieldFrom = fromValue
@@ -1744,10 +1747,11 @@ class ScreenForm {
         }
 
         List<Map<String, Object>> getUserFormListFinds(WebExecutionContext ec) {
-            EntityList flfuList = ec.getEntity().find("moqui.screen.form.FormListFindUserView")
+            EntityFacade entityFacade = ec.getEntity()
+            EntityList flfuList = entityFacade.find("moqui.screen.form.FormListFindUserView")
                     .condition("userId", ec.user.userId)
                     .condition("formLocation", screenForm.location).useCache(true).list()
-            EntityList flfugList = ec.entity.find("moqui.screen.form.FormListFindUserGroupView")
+            EntityList flfugList = entityFacade.find("moqui.screen.form.FormListFindUserGroupView")
                     .condition("userGroupId", EntityCondition.IN, ec.user.userGroupIdSet)
                     .condition("formLocation", screenForm.location).useCache(true).list()
             Set<String> userOnlyFlfIdSet = new HashSet<>()
@@ -1917,7 +1921,8 @@ class ScreenForm {
     }
 
     static Map<String, String> makeFormListFindParameters(String formListFindId, WebExecutionContext ec) {
-        EntityList flffList = ec.getEntity().find("moqui.screen.form.FormListFindField")
+        EntityFacade entityFacade = ec.getEntity()
+        EntityList flffList = entityFacade.find("moqui.screen.form.FormListFindField")
                 .condition("formListFindId", formListFindId).useCache(true).list()
 
         Map<String, String> parmMap = new LinkedHashMap<>()
@@ -1948,7 +1953,8 @@ class ScreenForm {
     }
 
     static Map<String, Object> getFormListFindInfo(String formListFindId, WebExecutionContext ec, Set<String> userOnlyFlfIdSet) {
-        EntityValue formListFind = ec.getEntity().fastFindOne("moqui.screen.form.FormListFind", true, false, formListFindId)
+        EntityFacade entityFacade = ec.getEntity()
+        EntityValue formListFind = entityFacade.fastFindOne("moqui.screen.form.FormListFind", true, false, formListFindId)
         Map<String, String> flfParameters = makeFormListFindParameters(formListFindId, ec)
         flfParameters.put("formListFindId", formListFindId)
         if (formListFind.orderByField) flfParameters.put("orderByField", (String) formListFind.orderByField)
@@ -1959,9 +1965,10 @@ class ScreenForm {
     static String processFormSavedFind(WebExecutionContext ec) {
         String userId = ec.getUser().userId
         ContextStack cs = ec.getContext()
+        EntityFacade entityFacade = ec.getEntity()
 
         String formListFindId = (String) cs.formListFindId
-        EntityValue flf = formListFindId != null && !formListFindId.isEmpty() ? ec.getEntity().find("moqui.screen.form.FormListFind")
+        EntityValue flf = formListFindId != null && !formListFindId.isEmpty() ? entityFacade.find("moqui.screen.form.FormListFind")
                 .condition("formListFindId", formListFindId).useCache(false).one() : null
 
         boolean isDelete = cs.containsKey("DeleteFind")
@@ -1971,21 +1978,21 @@ class ScreenForm {
 
             // delete FormListFindUser record; if there are no other FormListFindUser records or FormListFindUserGroup
             //     records, delete the FormListFind
-            EntityValue flfu = ec.entity.find("moqui.screen.form.FormListFindUser").condition("userId", userId)
+            EntityValue flfu = entityFacade.find("moqui.screen.form.FormListFindUser").condition("userId", userId)
                     .condition("formListFindId", formListFindId).useCache(false).one()
             // NOTE: if no FormListFindUser nothing to delete... consider removing form from all groups the user is in? best not to, affects other users especially for ALL_USERS
             if (flfu == null) return null
             flfu.delete()
 
-            long userCount = ec.entity.find("moqui.screen.form.FormListFindUser")
+            long userCount = entityFacade.find("moqui.screen.form.FormListFindUser")
                     .condition("formListFindId", formListFindId).useCache(false).count()
             if (userCount == 0L) {
-                long groupCount = ec.entity.find("moqui.screen.form.FormListFindUserGroup")
+                long groupCount = entityFacade.find("moqui.screen.form.FormListFindUserGroup")
                         .condition("formListFindId", formListFindId).useCache(false).count()
                 if (groupCount == 0L) {
-                    ec.entity.find("moqui.screen.form.FormListFindField")
+                    entityFacade.find("moqui.screen.form.FormListFindField")
                             .condition("formListFindId", formListFindId).deleteAll()
-                    ec.entity.find("moqui.screen.form.FormListFind")
+                    entityFacade.find("moqui.screen.form.FormListFind")
                             .condition("formListFindId", formListFindId).deleteAll()
                 }
             }
@@ -2011,7 +2018,7 @@ class ScreenForm {
         if ((formConfigId == null || formConfigId.isEmpty()) && flf != null) formConfigId = flf.formConfigId
         EntityList formConfigFieldList = null
         if (formConfigId != null && !formConfigId.isEmpty()) {
-            formConfigFieldList = ec.getEntity().find("moqui.screen.form.FormConfigField")
+            formConfigFieldList = entityFacade.find("moqui.screen.form.FormConfigField")
                     .condition("formConfigId", formConfigId).useCache(true).list()
         }
 
@@ -2024,10 +2031,10 @@ class ScreenForm {
             }
 
             // make sure the user or group the user is in is associated with the FormListFind
-            EntityValue flfu = ec.entity.find("moqui.screen.form.FormListFindUser").condition("userId", userId)
+            EntityValue flfu = entityFacade.find("moqui.screen.form.FormListFindUser").condition("userId", userId)
                     .condition("formListFindId", formListFindId).useCache(false).one()
             if (flfu == null) {
-                long groupCount = ec.entity.find("moqui.screen.form.FormListFindUserGroup")
+                long groupCount = entityFacade.find("moqui.screen.form.FormListFindUserGroup")
                         .condition("userGroupId", EntityCondition.IN, ec.user.userGroupIdSet)
                         .condition("formListFindId", formListFindId).useCache(false).count()
                 if (groupCount == 0L) {
@@ -2045,9 +2052,9 @@ class ScreenForm {
             if (formConfigFieldList != null && formConfigFieldList.size() > 0) {
                 String flfFormConfigId = (String) flf.getNoCheckSimple("formConfigId")
                 if (flfFormConfigId != null && !flfFormConfigId.isEmpty()) {
-                    ec.entity.find("moqui.screen.form.FormConfigField").condition("formConfigId", flfFormConfigId).deleteAll()
+                    entityFacade.find("moqui.screen.form.FormConfigField").condition("formConfigId", flfFormConfigId).deleteAll()
                 } else {
-                    EntityValue formConfig = ec.entity.makeValue("moqui.screen.form.FormConfig").set("formLocation", formLocation)
+                    EntityValue formConfig = entityFacade.makeValue("moqui.screen.form.FormConfig").set("formLocation", formLocation)
                             .setSequencedIdPrimary().create()
                     flfFormConfigId = (String) formConfig.getNoCheckSimple("formConfigId")
                     flf.formConfigId = flfFormConfigId
@@ -2058,8 +2065,8 @@ class ScreenForm {
                 String flfFormConfigId = (String) flf.getNoCheckSimple("formConfigId")
                 flf.formConfigId = null
                 if (flfFormConfigId != null && !flfFormConfigId.isEmpty())
-                    ec.entity.find("moqui.screen.form.FormConfigField").condition("formConfigId", flfFormConfigId).deleteAll()
-                ec.entity.find("moqui.screen.form.FormConfigField").condition("formConfigId", flfFormConfigId).deleteAll()
+                    entityFacade.find("moqui.screen.form.FormConfigField").condition("formConfigId", flfFormConfigId).deleteAll()
+                entityFacade.find("moqui.screen.form.FormConfigField").condition("formConfigId", flfFormConfigId).deleteAll()
             }
 
             if (cs._findDescription) flf.description = cs._findDescription
@@ -2067,19 +2074,19 @@ class ScreenForm {
             if (flf.isModified()) flf.update()
 
             // remove all FormListFindField records and create new ones
-            ec.entity.find("moqui.screen.form.FormListFindField").condition("formListFindId", formListFindId).deleteAll()
+            entityFacade.find("moqui.screen.form.FormListFindField").condition("formListFindId", formListFindId).deleteAll()
             ArrayList<EntityValue> flffList = formInstance.makeFormListFindFields(formListFindId, ec)
             for (EntityValue flff in flffList) flff.create()
         } else {
             // if there are FormConfig fields save in a new FormConfig first so we can set the formConfigId later
             EntityValue formConfig = null
             if (formConfigFieldList != null && formConfigFieldList.size() > 0) {
-                formConfig = ec.entity.makeValue("moqui.screen.form.FormConfig").set("formLocation", formLocation)
+                formConfig = entityFacade.makeValue("moqui.screen.form.FormConfig").set("formLocation", formLocation)
                         .setSequencedIdPrimary().create()
                 for (EntityValue fcf in formConfigFieldList) fcf.cloneValue().set("formConfigId", formConfig.formConfigId).create()
             }
 
-            flf = ec.entity.makeValue("moqui.screen.form.FormListFind")
+            flf = entityFacade.makeValue("moqui.screen.form.FormListFind")
             flf.formLocation = formLocation
             flf.description = cs._findDescription ?: "${ec.user.username} - ${ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd HH:mm")}"
             if (cs.orderByField) flf.orderByField = cs.orderByField
@@ -2089,7 +2096,7 @@ class ScreenForm {
 
             formListFindId = (String) flf.formListFindId
 
-            EntityValue flfu = ec.entity.makeValue("moqui.screen.form.FormListFindUser")
+            EntityValue flfu = entityFacade.makeValue("moqui.screen.form.FormListFindUser")
             flfu.formListFindId = formListFindId
             flfu.userId = userId
             flfu.create()
@@ -2104,13 +2111,15 @@ class ScreenForm {
     static void saveFormConfig(WebExecutionContext ec) {
         String userId = ec.getUser().userId
         ContextStack cs = ec.getContext()
+        EntityFacade entityFacade = ec.getEntity()
+        ServiceFacade serviceFacade = ec.getService()
         String formLocation = cs.get("formLocation")
         if (!formLocation) { ec.getMessage().addError("No form location specified, cannot save form configuration"); return; }
 
         // see if there is an existing FormConfig record
         String formConfigId = cs.get("formConfigId")
         if (!formConfigId) {
-            EntityValue fcu = ec.entity.find("moqui.screen.form.FormConfigUser")
+            EntityValue fcu = entityFacade.find("moqui.screen.form.FormConfigUser")
                     .condition("userId", userId).condition("formLocation", formLocation).useCache(false).one()
             formConfigId = fcu != null ? fcu.formConfigId : null
         }
@@ -2119,12 +2128,12 @@ class ScreenForm {
         // if FormConfig associated with this user but no other users or groups delete its FormConfigField
         //     records and remember its ID for create FormConfigField
         if (formConfigId) {
-            long userCount = ec.entity.find("moqui.screen.form.FormConfigUser")
+            long userCount = entityFacade.find("moqui.screen.form.FormConfigUser")
                     .condition("formConfigId", formConfigId).useCache(false).count()
             if (userCount > 1) {
                 formConfigId = null
             } else {
-                long groupCount = ec.entity.find("moqui.screen.form.FormConfigUserGroup")
+                long groupCount = entityFacade.find("moqui.screen.form.FormConfigUserGroup")
                         .condition("formConfigId", formConfigId).useCache(false).count()
                 if (groupCount > 0) formConfigId = null
             }
@@ -2132,18 +2141,18 @@ class ScreenForm {
 
         // clear out existing records
         if (formConfigId) {
-            ec.entity.find("moqui.screen.form.FormConfigField").condition("formConfigId", formConfigId).deleteAll()
+            entityFacade.find("moqui.screen.form.FormConfigField").condition("formConfigId", formConfigId).deleteAll()
         }
 
         // are we resetting columns?
         if (cs.get("ResetColumns")) {
             if (formConfigId) {
                 // no other users on this form, and now being reset, so delete FormConfig
-                ec.entity.find("moqui.screen.form.FormConfigUser").condition("formConfigId", formConfigId).deleteAll()
-                ec.entity.find("moqui.screen.form.FormConfig").condition("formConfigId", formConfigId).deleteAll()
+                entityFacade.find("moqui.screen.form.FormConfigUser").condition("formConfigId", formConfigId).deleteAll()
+                entityFacade.find("moqui.screen.form.FormConfig").condition("formConfigId", formConfigId).deleteAll()
             } else if (userCurrentFormConfigId) {
                 // there is a FormConfig but other users are using it, so just remove this user
-                ec.entity.find("moqui.screen.form.FormConfigUser").condition("formConfigId", userCurrentFormConfigId)
+                entityFacade.find("moqui.screen.form.FormConfigUser").condition("formConfigId", userCurrentFormConfigId)
                         .condition("userId", userId).deleteAll()
             }
             // to reset columns don't save new ones, just return after clearing out existing records
@@ -2153,10 +2162,10 @@ class ScreenForm {
         // if there is no FormConfig or found record is associated with other users or groups
         //     create a new FormConfig record to use
         if (!formConfigId) {
-            Map createResult = ec.service.sync().name("create#moqui.screen.form.FormConfig")
+            Map createResult = serviceFacade.sync().name("create#moqui.screen.form.FormConfig")
                     .parameters([userId:userId, formLocation:formLocation, description:"For user ${userId}"]).call()
             formConfigId = createResult.formConfigId
-            ec.service.sync().name("create#moqui.screen.form.FormConfigUser")
+            serviceFacade.sync().name("create#moqui.screen.form.FormConfigUser")
                     .parameters([formConfigId:formConfigId, userId:userId, formLocation:formLocation]).call()
         }
 
@@ -2179,7 +2188,7 @@ class ScreenForm {
             for (Map fieldMap in children) {
                 String fieldName = (String) fieldMap.get("id")
                 // logger.info("Adding field ${fieldName} to column ${columnIndex} at sequence ${columnSequence}")
-                ec.service.sync().name("create#moqui.screen.form.FormConfigField")
+                serviceFacade.sync().name("create#moqui.screen.form.FormConfigField")
                         .parameters([formConfigId:formConfigId, fieldName:fieldName,
                                      positionIndex:columnIndex, positionSequence:columnSequence]).call()
                 columnSequence++

@@ -24,13 +24,16 @@ import org.apache.shiro.subject.PrincipalCollection
 import org.apache.shiro.util.SimpleByteSource
 import org.moqui.BaseArtifactException
 import org.moqui.MoquiWeb
+import org.moqui.context.ResourceFacade
 import org.moqui.context.WebExecutionContext
 import org.moqui.context.WebExecutionContextFactory
 import org.moqui.entity.EntityCondition
+import org.moqui.entity.EntityFacade
 import org.moqui.entity.EntityList
 import org.moqui.entity.EntityValue
 import org.moqui.impl.context.ArtifactExecutionFacadeImpl
 import org.moqui.impl.context.UserFacadeImpl
+import org.moqui.service.ServiceFacade
 import org.moqui.util.MNode
 import org.moqui.util.WebUtilities
 import org.slf4j.Logger
@@ -70,11 +73,14 @@ class MoquiShiroRealm implements Realm, Authorizer {
     }
 
     static EntityValue loginPrePassword(WebExecutionContext eci, String username) {
-        EntityValue newUserAccount = eci.entity.find("moqui.security.UserAccount").condition("username", username)
+        EntityFacade entityFacade = eci.getEntity()
+        ResourceFacade resourceFacade = eci.getResource()
+        ServiceFacade serviceFacade = eci.getService()
+        EntityValue newUserAccount = entityFacade.find("moqui.security.UserAccount").condition("username", username)
                 .useCache(true).disableAuthz().one()
 
         // no account found?
-        if (newUserAccount == null) throw new UnknownAccountException(eci.resource.expand('No account found for username ${username}','',[username:username]))
+        if (newUserAccount == null) throw new UnknownAccountException(resourceFacade.expand('No account found for username ${username}','',[username:username]))
 
         // check for disabled account before checking password (otherwise even after disable could determine if
         //    password is correct or not
@@ -85,16 +91,16 @@ class MoquiShiroRealm implements Realm, Authorizer {
                 Timestamp reEnableTime = new Timestamp(newUserAccount.getTimestamp("disabledDateTime").getTime() + (disabledMinutes.intValue()*60I*1000I))
                 if (reEnableTime > eci.user.nowTimestamp) {
                     // only blow up if the re-enable time is not passed
-                    eci.service.sync().name("org.moqui.impl.UserServices.incrementUserAccountFailedLogins")
+                    serviceFacade.sync().name("org.moqui.impl.UserServices.incrementUserAccountFailedLogins")
                             .parameter("userId", newUserAccount.userId).requireNewTransaction(true).call()
-                    throw new ExcessiveAttemptsException(eci.resource.expand('Authenticate failed for user ${newUserAccount.username} because account is disabled and will not be re-enabled until ${reEnableTime} [DISTMP].',
+                    throw new ExcessiveAttemptsException(resourceFacade.expand('Authenticate failed for user ${newUserAccount.username} because account is disabled and will not be re-enabled until ${reEnableTime} [DISTMP].',
                             '', [newUserAccount:newUserAccount, reEnableTime:reEnableTime]))
                 }
             } else {
                 // account permanently disabled
-                eci.service.sync().name("org.moqui.impl.UserServices.incrementUserAccountFailedLogins")
+                serviceFacade.sync().name("org.moqui.impl.UserServices.incrementUserAccountFailedLogins")
                         .parameters((Map<String, Object>) [userId:newUserAccount.userId]).requireNewTransaction(true).call()
-                throw new DisabledAccountException(eci.resource.expand('Authenticate failed for user ${newUserAccount.username} because account is disabled and is not schedule to be automatically re-enabled [DISPRM].',
+                throw new DisabledAccountException(resourceFacade.expand('Authenticate failed for user ${newUserAccount.username} because account is disabled and is not schedule to be automatically re-enabled [DISPRM].',
                         '', [newUserAccount:newUserAccount]))
             }
         }
@@ -103,10 +109,13 @@ class MoquiShiroRealm implements Realm, Authorizer {
     }
 
     static void loginPostPassword(WebExecutionContext eci, EntityValue newUserAccount) {
+        ResourceFacade resourceFacade = eci.getResource()
+        EntityFacade entityFacade = eci.getEntity()
+        ServiceFacade serviceFacade = eci.getService()
         // the password did match, but check a few additional things
         if ("Y".equals(newUserAccount.getNoCheckSimple("requirePasswordChange"))) {
             // NOTE: don't call incrementUserAccountFailedLogins here (don't need compounding reasons to stop access)
-            throw new CredentialsException(eci.resource.expand('Authenticate failed for user [${newUserAccount.username}] because account requires password change [PWDCHG].','',[newUserAccount:newUserAccount]))
+            throw new CredentialsException(resourceFacade.expand('Authenticate failed for user [${newUserAccount.username}] because account requires password change [PWDCHG].','',[newUserAccount:newUserAccount]))
         }
         // check time since password was last changed, if it has been too long (user-facade.password.@change-weeks default 12) then fail
         if (newUserAccount.getNoCheckSimple("passwordSetDate") != null) {
@@ -115,7 +124,7 @@ class MoquiShiroRealm implements Realm, Authorizer {
                 int wksSinceChange = ((eci.user.nowTimestamp.time - newUserAccount.getTimestamp("passwordSetDate").time) / (7*24*60*60*1000)).intValue()
                 if (wksSinceChange > changeWeeks) {
                     // NOTE: don't call incrementUserAccountFailedLogins here (don't need compounding reasons to stop access)
-                    throw new ExpiredCredentialsException(eci.resource.expand('Authenticate failed for user ${newUserAccount.username} because password was changed ${wksSinceChange} weeks ago and must be changed every ${changeWeeks} weeks [PWDTIM].',
+                    throw new ExpiredCredentialsException(resourceFacade.expand('Authenticate failed for user ${newUserAccount.username} because password was changed ${wksSinceChange} weeks ago and must be changed every ${changeWeeks} weeks [PWDTIM].',
                             '', [newUserAccount:newUserAccount, wksSinceChange:wksSinceChange, changeWeeks:changeWeeks]))
                 }
             }
@@ -132,14 +141,14 @@ class MoquiShiroRealm implements Realm, Authorizer {
                 String uaIpAllowed = newUserAccount.getNoCheckSimple("ipAllowed")
                 if (uaIpAllowed != null && !uaIpAllowed.isEmpty()) ipAllowedList.add(uaIpAllowed)
 
-                EntityList ugmList = eci.getEntity().find("moqui.security.UserGroupMember")
+                EntityList ugmList = entityFacade.find("moqui.security.UserGroupMember")
                         .condition("userId", newUserAccount.getNoCheckSimple("userId"))
                         .disableAuthz().useCache(true).list()
                         .filterByDate(null, null, eci.getUser().nowTimestamp)
                 ArrayList<String> userGroupIdList = new ArrayList<>()
                 for (EntityValue ugm in ugmList) userGroupIdList.add((String) ugm.get("userGroupId"))
                 userGroupIdList.add("ALL_USERS")
-                EntityList ugList = eci.getEntity().find("moqui.security.UserGroup")
+                EntityList ugList = entityFacade.find("moqui.security.UserGroup")
                         .condition("ipAllowed", EntityCondition.IS_NOT_NULL, null)
                         .condition("userGroupId", EntityCondition.IN, userGroupIdList).disableAuthz().useCache(false).list()
                 for (EntityValue ug in ugList) ipAllowedList.add((String) ug.getNoCheckSimple("ipAllowed"))
@@ -155,7 +164,7 @@ class MoquiShiroRealm implements Realm, Authorizer {
                         }
                     }
                     if (!anyMatches) throw new AccountException(
-                            eci.resource.expand('Authenticate failed for user ${newUserAccount.username} because client IP ${clientIp} is not in allowed list for user or group.',
+                            resourceFacade.expand('Authenticate failed for user ${newUserAccount.username} because client IP ${clientIp} is not in allowed list for user or group.',
                             '', [newUserAccount:newUserAccount, clientIp:clientIp]))
                 }
             }
@@ -165,7 +174,7 @@ class MoquiShiroRealm implements Realm, Authorizer {
         if (newUserAccount.getNoCheckSimple("successiveFailedLogins") || "Y".equals(newUserAccount.getNoCheckSimple("disabled")) ||
                 newUserAccount.getNoCheckSimple("disabledDateTime") != null || "Y".equals(newUserAccount.getNoCheckSimple("hasLoggedOut"))) {
             try {
-                eci.service.sync().name("update", "moqui.security.UserAccount")
+                serviceFacade.sync().name("update", "moqui.security.UserAccount")
                         .parameters([userId:newUserAccount.userId, successiveFailedLogins:0, disabled:"N", disabledDateTime:null, hasLoggedOut:"N"])
                         .disableAuthz().call()
             } catch (Exception e) {
@@ -175,16 +184,16 @@ class MoquiShiroRealm implements Realm, Authorizer {
 
         // update visit if no user in visit yet
         String visitId = eci.getUser().getVisitId()
-        EntityValue visit = eci.getEntity().find("moqui.server.Visit").condition("visitId", visitId).disableAuthz().one()
+        EntityValue visit = entityFacade.find("moqui.server.Visit").condition("visitId", visitId).disableAuthz().one()
         if (visit != null) {
             if (!visit.getNoCheckSimple("userId")) {
-                eci.service.sync().name("update", "moqui.server.Visit").parameter("visitId", visit.visitId)
+                serviceFacade.sync().name("update", "moqui.server.Visit").parameter("visitId", visit.visitId)
                         .parameter("userId", newUserAccount.userId).disableAuthz().call()
             }
             if (!visit.getNoCheckSimple("clientIpCountryGeoId") && !visit.getNoCheckSimple("clientIpTimeZone")) {
                 MNode ssNode = eci.getFactory().confXmlRoot.first("server-stats")
                 if (ssNode.attribute("visit-ip-info-on-login") != "false") {
-                    eci.service.async().name("org.moqui.impl.ServerServices.get#VisitClientIpData")
+                    serviceFacade.async().name("org.moqui.impl.ServerServices.get#VisitClientIpData")
                             .parameter("visitId", visit.visitId).call()
                 }
             }
@@ -205,9 +214,10 @@ class MoquiShiroRealm implements Realm, Authorizer {
                 if (!successful && loginNode.attribute("history-incorrect-password") != "false") ulhContext.passwordUsed = passwordUsed
 
                 WebExecutionContextFactory ecfi = (WebExecutionContextFactory) eci.getFactory()
+                EntityFacade entityFacade = eci.getEntity()
                 eci.runInWorkerThread({
                     try {
-                        long recentUlh = eci.entity.find("moqui.security.UserLoginHistory").condition("userId", userId)
+                        long recentUlh = entityFacade.find("moqui.security.UserLoginHistory").condition("userId", userId)
                                 .condition("fromDate", EntityCondition.GREATER_THAN, recentDate).disableAuthz().count()
                         if (recentUlh == 0) {
                             ecfi.getService().sync().name("create", "moqui.security.UserLoginHistory")

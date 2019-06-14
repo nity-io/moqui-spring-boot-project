@@ -23,6 +23,7 @@ import org.moqui.context.ExecutionContext
 import org.moqui.context.ResourceFacade
 import org.moqui.context.WebExecutionContext
 import org.moqui.context.WebExecutionContextFactory
+import org.moqui.entity.EntityFacade
 import org.moqui.impl.context.ContextJavaUtil
 import org.moqui.impl.entity.EntityDefinition
 import org.moqui.impl.service.ServiceDefinition
@@ -33,7 +34,7 @@ import org.moqui.entity.EntityList
 import org.moqui.entity.EntityValue
 import org.moqui.impl.actions.XmlAction
 import org.moqui.impl.context.ArtifactExecutionInfoImpl
-import org.moqui.impl.context.ExecutionContextImpl
+import org.moqui.service.ServiceFacade
 import org.moqui.util.ContextStack
 import org.moqui.util.MNode
 import org.moqui.util.ObjectUtilities
@@ -667,6 +668,7 @@ class ScreenDefinition {
         }
         String getName() { return name }
         Object getValue(WebExecutionContext ec) {
+            WebFacade webFacade = ec.getWeb()
             Object value = null
             if (fromFieldGroovy != null) { value = InvokerHelper.createScript(fromFieldGroovy, ec.contextBinding).run() }
             if (value == null) {
@@ -674,7 +676,7 @@ class ScreenDefinition {
                 else { value = valueString }
             }
             if (value == null) value = ec.context.getByString(name)
-            if (value == null && ec.web != null) value = ec.web.parameters.get(name)
+            if (value == null && ec.web != null) value = webFacade.parameters.get(name)
             return value
         }
     }
@@ -775,8 +777,9 @@ class ScreenDefinition {
                 int i = 0
                 for (String extraPathName in extraPathNameList) {
                     if (pathParameterList.size() > i) {
+                        WebFacade webFacade = ec.getWeb()
                         // logger.warn("extraPathName ${extraPathName} i ${i} name ${pathParameterList.get(i)}")
-                        if (ec.getWeb() != null) ec.getWeb().addDeclaredPathParameter(pathParameterList.get(i), extraPathName)
+                        if (ec.getWeb() != null) webFacade.addDeclaredPathParameter(pathParameterList.get(i), extraPathName)
                         ec.getContext().put(pathParameterList.get(i), extraPathName)
                         i++
                     } else {
@@ -821,6 +824,10 @@ class ScreenDefinition {
             }
 
             try {
+                ResourceFacade resourceFacade = ec.getResource()
+                ServiceFacade serviceFacade = ec.getService()
+                EntityFacade entityFacade = ec.getEntity()
+
                 ScreenUrlInfo screenUrlInfo = sri.getScreenUrlInfo()
                 ScreenUrlInfo.UrlInstance screenUrlInstance = sri.getScreenUrlInstance()
                 setAllParameters(screenUrlInfo.getExtraPathNameList(), ec)
@@ -829,7 +836,7 @@ class ScreenDefinition {
 
 
                 if (!checkCondition(ec)) {
-                    sri.ec.message.addError(ec.resource.expand('Condition failed for transition [${location}], not running actions or redirecting','',[location:location]))
+                    sri.ec.message.addError(resourceFacade.expand('Condition failed for transition [${location}], not running actions or redirecting','',[location:location]))
                     if (errorResponse) return errorResponse
                     return defaultResponse
                 }
@@ -840,9 +847,9 @@ class ScreenDefinition {
                 if (serviceActions != null) {
                     // if this is an implicit entity auto service filter input for HTML like done in defined service calls by default;
                     //     to get around define a service with a parameter that allows safe or any HTML instead of using implicit entity auto directly
-                    if (ec.getService().isEntityAutoPattern(singleServiceName)) {
+                    if (serviceFacade.isEntityAutoPattern(singleServiceName)) {
                         String entityName = ServiceDefinition.getNounFromName(singleServiceName)
-                        EntityDefinition ed = ec.getEntity().getEntityDefinition(entityName)
+                        EntityDefinition ed = entityFacade.getEntityDefinition(entityName)
                         if (ed != null) {
                             ArrayList<String> fieldNameList = ed.getAllFieldNames()
                             int fieldNameListSize = fieldNameList.size()
@@ -1022,22 +1029,26 @@ class ScreenDefinition {
 
         ResponseItem run(ScreenRenderImpl sri) {
             WebExecutionContext eci = sri.ec
+            WebFacade webFacade = eci.getWeb()
+            EntityFacade entityFacade = eci.getEntity()
+            ResourceFacade resourceFacade = eci.getResource()
+
             String docIndexString = eci.getContext().getByString("docIndex")
             if (docIndexString == null || docIndexString.isEmpty()) {
-                eci.web.sendError(HttpServletResponse.SC_NOT_FOUND, "No docIndex specified", null)
+                webFacade.sendError(HttpServletResponse.SC_NOT_FOUND, "No docIndex specified", null)
                 return defaultResponse
             }
             Long docIndex = docIndexString as Long
-            EntityValue screenDocument = eci.getEntity().find("moqui.screen.ScreenDocument")
+            EntityValue screenDocument = entityFacade.find("moqui.screen.ScreenDocument")
                     .condition("screenLocation", parentScreen.location).condition("docIndex", docIndex)
                     .useCache(true).disableAuthz().one()
             if (screenDocument == null) {
-                eci.web.sendError(HttpServletResponse.SC_NOT_FOUND, "No document found for index ${docIndex}", null)
+                webFacade.sendError(HttpServletResponse.SC_NOT_FOUND, "No document found for index ${docIndex}", null)
                 return defaultResponse
             }
 
             String location = screenDocument.getNoCheckSimple("docLocation")
-            eci.getResource().template(location, sri.response.getWriter())
+            resourceFacade.template(location, sri.response.getWriter())
 
             return defaultResponse
         }

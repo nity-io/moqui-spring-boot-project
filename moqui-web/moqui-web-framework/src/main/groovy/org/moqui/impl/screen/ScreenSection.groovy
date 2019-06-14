@@ -15,11 +15,11 @@ package org.moqui.impl.screen
 
 import groovy.transform.CompileStatic
 import org.codehaus.groovy.runtime.InvokerHelper
+import org.moqui.context.ResourceFacade
 import org.moqui.context.WebExecutionContext
 import org.moqui.context.WebExecutionContextFactory
 import org.moqui.impl.actions.XmlAction
 import org.moqui.util.ContextStack
-import org.moqui.impl.context.ExecutionContextImpl
 import org.moqui.util.MNode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -75,7 +75,8 @@ class ScreenSection {
         ContextStack cs = sri.ec.getContext()
         if (sectionNode.name == "section-iterate") {
             // if nothing to iterate over, all done
-            Object list = sri.ec.getResource().expression(sectionNode.attribute("list"), null, sri.ec)
+            ResourceFacade resourceFacade = sri.ec.getResource()
+            Object list = resourceFacade.expression(sectionNode.attribute("list"), null, sri.ec)
             if (!list) {
                 if (logger.traceEnabled) logger.trace("Target list [${list}] is empty, not rendering section-iterate at [${location}]")
                 return

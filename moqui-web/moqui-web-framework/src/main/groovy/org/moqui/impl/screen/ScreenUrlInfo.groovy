@@ -19,8 +19,11 @@ import org.moqui.BaseException
 import org.moqui.MoquiWeb
 import org.moqui.context.ArtifactExecutionInfo
 import org.moqui.context.ExecutionContext
+import org.moqui.context.ResourceFacade
 import org.moqui.context.WebExecutionContext
 import org.moqui.context.WebExecutionContextFactory
+import org.moqui.context.WebFacade
+import org.moqui.entity.EntityFacade
 import org.moqui.entity.EntityList
 import org.moqui.entity.EntityValue
 import org.moqui.impl.context.ArtifactExecutionFacadeImpl
@@ -35,6 +38,7 @@ import org.moqui.impl.webapp.ScreenResourceNotFoundException
 import org.moqui.resource.ResourceReference
 import org.moqui.screen.ScreenFacade
 import org.moqui.screen.ScreenRender
+import org.moqui.service.ServiceFacade
 import org.moqui.util.MNode
 import org.moqui.util.ObjectUtilities
 import org.moqui.util.StringUtilities
@@ -929,7 +933,10 @@ class ScreenUrlInfo {
             // logger.warn("======= Creating UrlInstance ${sui.getFullPathNameList()} - ${sui.targetScreen.getLocation()} - ${sui.getTargetTransitionActualName()}")
         }
 
-        String getRequestMethod() { return ec.web != null ? ec.web.request.method : "" }
+        String getRequestMethod() {
+            WebFacade webFacade = ec.getWeb()
+            return webFacade != null ? webFacade.request.method : ""
+        }
         TransitionItem getTargetTransition() {
             if (curTargetTransition == null && sui.targetScreen != null && sui.targetTransitionActualName != null)
                 curTargetTransition = sui.targetScreen.getTransitionItem(sui.targetTransitionActualName, getRequestMethod())
@@ -966,7 +973,8 @@ class ScreenUrlInfo {
 
                 // create a ScreenUrlInfo, then copy its info into this
                 String expandedUrl = ti.defaultResponse.url
-                if (expandedUrl.contains('${')) expandedUrl = ec.getResource().expand(expandedUrl, "")
+                ResourceFacade resourceFacade = ec.getResource()
+                if (expandedUrl.contains('${')) expandedUrl = resourceFacade.expand(expandedUrl, "")
                 ScreenUrlInfo aliasUrlInfo = getScreenUrlInfo(sri.sfi, sui.rootSd, sui.fromSd,
                         sui.preTransitionPathNameList, expandedUrl, parseLastStandalone((String) transitionAliasParameters.lastStandalone, sui.lastStandalone))
 
@@ -1033,11 +1041,14 @@ class ScreenUrlInfo {
                     String valueStr = ObjectUtilities.toPlainString(value)
                     if (valueStr != null && valueStr.length() > 0) allParameterMap.put(pi.name, valueStr)
                 }
+                ServiceFacade serviceFacade = ec.getService()
+                WebFacade webFacade = ec.getWeb()
+                EntityFacade entityFacade = ec.getEntity()
                 String targetServiceName = targetTransition.getSingleServiceName()
                 if (targetServiceName != null && targetServiceName.length() > 0) {
-                    ServiceDefinition sd = ec.getService().getServiceDefinition(targetServiceName)
+                    ServiceDefinition sd = serviceFacade.getServiceDefinition(targetServiceName)
                     Map<String, Object> csMap = ec.getContext().getCombinedMap()
-                    Map<String, Object> wfParameters = ec.getWeb()?.getParameters()
+                    Map<String, Object> wfParameters = webFacade?.getParameters()
                     if (sd != null) {
                         ArrayList<String> inParameterNames = sd.getInParameterNames()
                         int inParameterNamesSize = inParameterNames.size()
@@ -1054,7 +1065,7 @@ class ScreenUrlInfo {
                         String verb = targetServiceName.substring(0, targetServiceName.indexOf("#"))
                         if (verb == "create" || verb == "update" || verb == "delete" || verb == "store") {
                             String en = targetServiceName.substring(targetServiceName.indexOf("#") + 1)
-                            EntityDefinition ed = ec.getEntity().getEntityDefinition(en)
+                            EntityDefinition ed = entityFacade.getEntityDefinition(en)
                             if (ed != null) {
                                 for (String fn in ed.getPkFieldNames()) {
                                     Object value = csMap.get(fn)

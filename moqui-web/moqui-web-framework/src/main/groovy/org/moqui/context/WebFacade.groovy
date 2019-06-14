@@ -11,7 +11,9 @@
  * along with this software (see the LICENSE.md file). If not, see
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package org.moqui.context;
+package org.moqui.context
+
+import org.moqui.impl.service.RestApi;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,6 +81,7 @@ public interface WebFacade {
     List<Map> getScreenHistory();
 
     void sendJsonResponse(Object responseObj);
+    void sendJsonError(int statusCode, String errorMessages);
     void sendTextResponse(String text);
     void sendTextResponse(String text, String contentType, String filename);
     void sendResourceResponse(String location);
@@ -92,4 +95,8 @@ public interface WebFacade {
     void saveScreenLastInfo(String screenPath, Map parameters);
 
     void saveMessagesToSession();
+
+    WebExecutionContextFactory getFactory();
+
+    RestApi getRestApi();
 }

@@ -17,6 +17,8 @@ import groovy.transform.CompileStatic
 import org.moqui.context.ExecutionContext
 import org.moqui.context.ServiceExecutionContextFactory
 import org.moqui.context.ToolFactory
+import org.moqui.entity.EntityDataLoader
+import org.moqui.entity.EntityDataLoaderImpl
 import org.moqui.impl.context.ServiceExecutionContextFactoryImpl
 import org.moqui.impl.service.runner.EntityAutoServiceRunner
 import org.moqui.impl.service.runner.RemoteJsonRpcServiceRunner
@@ -46,7 +48,6 @@ class ServiceFacadeImpl implements ServiceFacade {
 
     protected Map<String, ArrayList<ServiceEcaRule>> secaRulesByServiceName = new HashMap<>()
     protected final List<EmailEcaRule> emecaRuleList = new ArrayList()
-//    public final RestApi restApi
 
     protected final Map<String, ServiceRunner> serviceRunners = new HashMap()
 
@@ -69,8 +70,6 @@ class ServiceFacadeImpl implements ServiceFacade {
             serviceRunners.put(serviceType.attribute("name"), sr.init(this))
         }
 
-        // load REST API
-//        restApi = new RestApi(ecfi)
     }
 
     void postFacadeInit() {
@@ -130,6 +129,7 @@ class ServiceFacadeImpl implements ServiceFacade {
     // NOTE: this is used in the ServiceJobList screen
     ScheduledJobRunner getJobRunner() { jobRunner }
 
+    @Override
     boolean isServiceDefined(String serviceName) {
         ServiceDefinition sd = getServiceDefinition(serviceName)
         if (sd != null) return true
@@ -484,6 +484,8 @@ class ServiceFacadeImpl implements ServiceFacade {
         ExecutionContext eci = ecfi.getEci()
         for (EmailEcaRule eer in emecaRuleList) eer.runIfMatches(message, emailServerId, eci)
     }
+
+    @Override EntityDataLoader makeDataLoader() { return new EntityDataLoaderImpl(this.getFactory()) }
 
     @Override
     ServiceCallSync sync() { return new ServiceCallSyncImpl(this) }

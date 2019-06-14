@@ -18,8 +18,10 @@ import org.moqui.context.ArtifactAuthorizationException
 import org.moqui.context.ArtifactTarpitException
 import org.moqui.context.ExecutionContext
 import org.moqui.context.ExecutionContextThreadHolder
+import org.moqui.context.ResourceFacade
 import org.moqui.context.WebExecutionContext
 import org.moqui.context.WebExecutionContextFactory
+import org.moqui.context.WebFacade
 import org.moqui.screen.ScreenRender
 import org.moqui.util.StringUtilities
 import org.slf4j.Logger
@@ -69,9 +71,10 @@ class MoquiFopServlet extends HttpServlet {
         String xslFoText = null
         try {
             ec.initWebFacade(moquiWebappName, request, response)
-            ec.web.requestAttributes.put("moquiRequestStartTime", startTime)
+            WebFacade webFacade = ec.getWeb()
+            webFacade.requestAttributes.put("moquiRequestStartTime", startTime)
 
-            ArrayList<String> pathInfoList = ec.web.getPathInfoList()
+            ArrayList<String> pathInfoList = webFacade.getPathInfoList()
             ScreenRender sr = ec.screen.makeRender().webappName(moquiWebappName).renderMode("xsl-fo")
                     .rootScreenFromHost(request.getServerName()).screenPath(pathInfoList)
             xslFoText = sr.render()
@@ -84,10 +87,10 @@ class MoquiFopServlet extends HttpServlet {
             // logger.warn("======== XSL-FO content:\n${xslFoText}")
             if (logger.traceEnabled) logger.trace("XSL-FO content:\n${xslFoText}")
 
-            String contentType = (String) ec.web.requestParameters."contentType" ?: "application/pdf"
+            String contentType = (String) webFacade.requestParameters."contentType" ?: "application/pdf"
             response.setContentType(contentType)
 
-            String filename = (ec.web.parameters.get("filename") as String) ?: (ec.web.parameters.get("saveFilename") as String)
+            String filename = (webFacade.parameters.get("filename") as String) ?: (webFacade.parameters.get("saveFilename") as String)
             if (filename) {
                 String utfFilename = StringUtilities.encodeAsciiFilename(filename)
                 response.addHeader("Content-Disposition", "attachment; filename=\"${filename}\"; filename*=utf-8''${utfFilename}")
@@ -97,13 +100,14 @@ class MoquiFopServlet extends HttpServlet {
 
             // special case disable authz for resource access
             boolean enableAuthz = !ecfi.getExecutionContext().getArtifactExecution().disableAuthz()
+            ResourceFacade resourceFacade = ec.getResource()
             try {
                 /* FUTURE: pre-render to get page count, then pass in final rendered streamed to client
                 Integer pageCount = ec.resource.xslFoTransform(new StreamSource(new StringReader(xslFoText)), null,
                         org.apache.commons.io.output.NullOutputStream.NULL_OUTPUT_STREAM, contentType)
                 logger.info("Rendered ${pathInfo} as ${contentType} has ${pageCount} pages")
                 */
-                ec.resource.xslFoTransform(new StreamSource(new StringReader(xslFoText)), null,
+                resourceFacade.xslFoTransform(new StreamSource(new StringReader(xslFoText)), null,
                         response.getOutputStream(), contentType)
             } finally {
                 if (enableAuthz) ecfi.getExecutionContext().getArtifactExecution().enableAuthz()

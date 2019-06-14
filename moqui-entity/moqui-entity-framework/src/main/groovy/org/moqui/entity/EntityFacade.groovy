@@ -15,14 +15,11 @@ package org.moqui.entity
 
 import org.moqui.context.EntityExecutionContextFactory
 import org.moqui.impl.entity.EntityDefinition
+import org.moqui.resource.ResourceReference
 
 import javax.sql.XAConnection;
 import java.sql.Connection;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
+import java.sql.Timestamp
 
 import org.moqui.etl.SimpleEtl;
 import org.moqui.util.MNode;
@@ -90,6 +87,8 @@ public interface EntityFacade {
      */
     EntityListIterator sqlFind(String sql, List<Object> sqlParameterList, String entityName, List<String> fieldList);
 
+    void addValuesFromPlainMapRecursive(EntityDefinition ed, Map value, EntityList valueList, Map<String, Object> parentPks);
+
     /** Find and assemble data documents represented by a Map that can be easily turned into a JSON document. This is
      * used for searching by the Data Search feature and for data feeds to other systems with the Data Feed feature.
      *
@@ -147,21 +146,6 @@ public interface EntityFacade {
      */
     Connection getConnection(String groupName) throws EntityException;
 
-    // ======= Import/Export (XML, CSV, etc) Related Methods ========
-
-    /** Make an object used to load XML or CSV entity data into the database or into an EntityList. The files come from
-     * a specific location, text already read from somewhere, or by searching all component data directories
-     * and the entity-facade.load-data elements for entity data files that match a type in the Set of types
-     * specified.
-     *
-     * An XML document should have a root element like <code>&lt;entity-facade-xml type=&quot;seed&quot;&gt;</code>. The
-     * type attribute will be used to determine if the file should be loaded by whether or not it matches the values
-     * specified for data types on the loader.
-     *
-     * @return EntityDataLoader instance
-     */
-    EntityDataLoader makeDataLoader();
-
     /** Used to write XML entity data from the database to a writer.
      *
      * The document will have a root element like <code>&lt;entity-facade-xml&gt;</code>.
@@ -185,7 +169,17 @@ public interface EntityFacade {
 
     XAConnection getConfConnection(Map<String, String> confMap);
 
+    void createAllAutoReverseManyRelationships();
+
+    List<ResourceReference> getConfEntityFileLocations();
+
+    List<ResourceReference> getComponentEntityFileLocations(List<String> componentNameList);
+
     void destroy();
+
+    Set<String> getAllNonViewEntityNames();
+
+    Set<String> getAllEntityNamesWithMaster();
 
     boolean isEntityDefined(String entityName);
 

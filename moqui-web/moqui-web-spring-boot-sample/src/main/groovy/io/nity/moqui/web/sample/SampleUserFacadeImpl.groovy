@@ -31,15 +31,17 @@ import org.moqui.context.ArtifactExecutionInfo
 import org.moqui.context.AuthenticationRequiredException
 import org.moqui.context.UserFacade
 import org.moqui.context.WebExecutionContext
+import org.moqui.context.WebFacade
 import org.moqui.entity.EntityCondition
+import org.moqui.entity.EntityFacade
 import org.moqui.entity.EntityList
 import org.moqui.entity.EntityValue
 import org.moqui.impl.context.ArtifactExecutionInfoImpl.ArtifactAuthzCheck
-import org.moqui.impl.context.ExecutionContextImpl
 import org.moqui.impl.context.UserFacadeImpl
 import org.moqui.impl.entity.EntityValueBase
 import org.moqui.impl.screen.ScreenUrlInfo
 import org.moqui.impl.util.MoquiShiroRealm
+import org.moqui.service.ServiceFacade
 import org.moqui.util.MNode
 import org.moqui.util.StringUtilities
 import org.moqui.util.WebUtilities
@@ -136,6 +138,10 @@ class SampleUserFacadeImpl implements UserFacade {
         this.response = response
         this.session = request.getSession()
 
+        EntityFacade entityFacade = eci.getEntity()
+        WebFacade webFacade = eci.getWeb()
+        ServiceFacade serviceFacade = eci.getService()
+
         // get client IP address, handle proxy original address if exists
         String forwardedFor = request.getHeader("X-Forwarded-For")
         if (forwardedFor != null && !forwardedFor.isEmpty()) { clientIpInternal = forwardedFor.split(",")[0].trim() }
@@ -155,7 +161,7 @@ class SampleUserFacadeImpl implements UserFacade {
             // user found in session so no login needed, but make sure hasLoggedOut != "Y"
             EntityValue userAccount = (EntityValue) null
             if (sesUsername != null && !sesUsername.isEmpty()) {
-                userAccount = eci.getEntity().find("moqui.security.UserAccount")
+                userAccount = entityFacade.find("moqui.security.UserAccount")
                         .condition("username", sesUsername).useCache(false).disableAuthz().one()
             }
 
@@ -182,7 +188,7 @@ class SampleUserFacadeImpl implements UserFacade {
 
         // check for HTTP Basic Authorization for Authentication purposes
         // NOTE: do this even if there is another user logged in, will go on stack
-        Map secureParameters = eci.getWeb() != null ? eci.getWeb().getSecureRequestParameters() :
+        Map secureParameters = eci.getWeb() != null ? webFacade.getSecureRequestParameters() :
                 WebUtilities.simplifyRequestParameters(request, true)
         String authzHeader = request.getHeader("Authorization")
         if (authzHeader != null && authzHeader.length() > 6 && authzHeader.startsWith("Basic ")) {
@@ -241,7 +247,7 @@ class SampleUserFacadeImpl implements UserFacade {
                 }
                 if (cookieVisitorId) {
                     // make sure the Visitor record actually exists, if not act like we got no moqui.visitor cookie
-                    EntityValue visitor = eci.entity.find("moqui.server.Visitor").condition("visitorId", cookieVisitorId).disableAuthz().one()
+                    EntityValue visitor = entityFacade.find("moqui.server.Visitor").condition("visitorId", cookieVisitorId).disableAuthz().one()
                     if (visitor == null) {
                         logger.info("Got invalid visitorId [${cookieVisitorId}] in moqui.visitor cookie in session [${session.id}], throwing away and making a new one")
                         cookieVisitorId = null
@@ -249,7 +255,7 @@ class SampleUserFacadeImpl implements UserFacade {
                 }
                 if (!cookieVisitorId) {
                     // NOTE: disable authz for this call, don't normally want to allow create of Visitor, but this is a special case
-                    Map cvResult = eci.service.sync().name("create", "moqui.server.Visitor")
+                    Map cvResult = serviceFacade.sync().name("create", "moqui.server.Visitor")
                             .parameter("createdDate", getNowTimestamp()).disableAuthz().call()
                     cookieVisitorId = (String) cvResult?.visitorId
                     if (logger.traceEnabled) logger.trace("Created new Visitor with ID [${cookieVisitorId}] in session [${session.id}]")
@@ -269,7 +275,7 @@ class SampleUserFacadeImpl implements UserFacade {
                 // create and persist Visit
                 String contextPath = session.getServletContext().getContextPath()
                 String webappId = contextPath.length() > 1 ? contextPath.substring(1) : "ROOT"
-                String fullUrl = eci.getWeb().requestUrl
+                String fullUrl = webFacade.requestUrl
                 fullUrl = (fullUrl.length() > 255) ? fullUrl.substring(0, 255) : fullUrl.toString()
                 Map<String, Object> parameters = new HashMap<String, Object>([sessionId:session.id, webappName:webappId,
                         fromDate:new Timestamp(session.getCreationTime()),
@@ -285,7 +291,7 @@ class SampleUserFacadeImpl implements UserFacade {
                 if (cookieVisitorId) parameters.visitorId = cookieVisitorId
 
                 // NOTE: disable authz for this call, don't normally want to allow create of Visit, but this is special case
-                Map visitResult = eci.service.sync().name("create", "moqui.server.Visit").parameters(parameters)
+                Map visitResult = serviceFacade.sync().name("create", "moqui.server.Visit").parameters(parameters)
                         .disableAuthz().call()
                 // put visitId in session as "moqui.visitId"
                 if (visitResult) {
@@ -428,10 +434,11 @@ class SampleUserFacadeImpl implements UserFacade {
         }
         if (sysPropVal != null && !sysPropVal.isEmpty()) return sysPropVal
 
-        EntityValue up = userId != null ? eci.getEntity().fastFindOne("moqui.security.UserPreference", true, true, userId, preferenceKey) : null
+        EntityFacade entityFacade = eci.getEntity()
+        EntityValue up = userId != null ? entityFacade.fastFindOne("moqui.security.UserPreference", true, true, userId, preferenceKey) : null
         if (up == null) {
             // try UserGroupPreference
-            EntityList ugpList = eci.getEntity().find("moqui.security.UserGroupPreference")
+            EntityList ugpList = entityFacade.find("moqui.security.UserGroupPreference")
                     .condition("userGroupId", EntityCondition.IN, getUserGroupIdSet(userId))
                     .condition("preferenceKey", preferenceKey).useCache(true).disableAuthz().list()
             if (ugpList != null && ugpList.size() > 0) up = ugpList.get(0)
@@ -442,10 +449,11 @@ class SampleUserFacadeImpl implements UserFacade {
     @Override Map<String, String> getPreferences(String keyRegexp) {
         String userId = getUserId()
         boolean hasKeyFilter = keyRegexp != null && !keyRegexp.isEmpty()
+        EntityFacade entityFacade = eci.getEntity()
 
         Map<String, String> prefMap = new HashMap<>()
         // start with UserGroupPreference, put UserPreference values over top to override
-        EntityList ugpList = eci.getEntity().find("moqui.security.UserGroupPreference")
+        EntityList ugpList = entityFacade.find("moqui.security.UserGroupPreference")
                 .condition("userGroupId", EntityCondition.IN, getUserGroupIdSet(userId)).disableAuthz().list()
         int ugpListSize = ugpList.size()
         for (int i = 0; i < ugpListSize; i++) {
@@ -456,7 +464,7 @@ class SampleUserFacadeImpl implements UserFacade {
         }
 
         if (userId != null) {
-            EntityList uprefList = eci.getEntity().find("moqui.security.UserPreference")
+            EntityList uprefList = entityFacade.find("moqui.security.UserPreference")
                     .condition("userId", userId).disableAuthz().list()
             int uprefListSize = uprefList.size()
             for (int i = 0; i < uprefListSize; i++) {
@@ -475,8 +483,9 @@ class SampleUserFacadeImpl implements UserFacade {
         if (!userId) throw new IllegalStateException("Cannot set preference with key ${preferenceKey}, no user logged in.")
         boolean alreadyDisabled = eci.getArtifactExecution().disableAuthz()
         boolean beganTransaction = eci.transaction.begin(null)
+        EntityFacade entityFacade = eci.getEntity()
         try {
-            eci.getEntity().makeValue("moqui.security.UserPreference").set("userId", getUserId())
+            entityFacade.makeValue("moqui.security.UserPreference").set("userId", getUserId())
                     .set("preferenceKey", preferenceKey).set("preferenceValue", preferenceValue).createOrUpdate()
         } catch (Throwable t) {
             eci.transaction.rollback(beganTransaction, "Error saving UserPreference", t)
@@ -669,8 +678,9 @@ class SampleUserFacadeImpl implements UserFacade {
         }
 
         UsernamePasswordToken token = new UsernamePasswordToken(username, password, true)
+        WebFacade webFacade = eci.getWeb()
         // if there is a web session invalidate it so there is a new session for the login (prevent Session Fixation attacks)
-        if (eci.getWeb() != null) session = eci.getWeb().makeNewSession()
+        if (eci.getWeb() != null) session = webFacade.makeNewSession()
 
         Subject loginSubject = makeEmptySubject()
         try {
@@ -683,8 +693,8 @@ class SampleUserFacadeImpl implements UserFacade {
 
             // after successful login trigger the after-login actions
             if (eci.getWeb() != null) {
-                eci.getWeb().runAfterLoginActions()
-                eci.getWeb().getRequest().setAttribute("moqui.request.authenticated", "true")
+                webFacade.runAfterLoginActions()
+                webFacade.getRequest().setAttribute("moqui.request.authenticated", "true")
             }
         } catch (AuthenticationException ae) {
             // others to consider handling differently (these all inherit from AuthenticationException):
@@ -707,6 +717,7 @@ class SampleUserFacadeImpl implements UserFacade {
 
         UsernamePasswordToken token = new MoquiShiroRealm.ForceLoginToken(username, true, saveHistory)
         Subject loginSubject = makeEmptySubject()
+        WebFacade webFacade = eci.getWeb()
         try {
             loginSubject.login(token)
 
@@ -716,8 +727,8 @@ class SampleUserFacadeImpl implements UserFacade {
 
             // after successful login trigger the after-login actions
             if (eci.getWeb() != null) {
-                eci.getWeb().runAfterLoginActions()
-                eci.getWeb().getRequest().setAttribute("moqui.request.authenticated", "true")
+                webFacade.runAfterLoginActions()
+                webFacade.getRequest().setAttribute("moqui.request.authenticated", "true")
             }
         } catch (AuthenticationException ae) {
             eci.getMessage().addError(ae.message)
@@ -734,8 +745,10 @@ class SampleUserFacadeImpl implements UserFacade {
     }
 
     @Override void logoutUser() {
+        WebFacade webFacade = eci.getWeb()
+        ServiceFacade serviceFacade = eci.getService()
         // before logout trigger the before-logout actions
-        if (eci.getWeb() != null) eci.getWeb().runBeforeLogoutActions()
+        if (eci.getWeb() != null) webFacade.runBeforeLogoutActions()
 
         String userId = getUserId()
 
@@ -751,7 +764,7 @@ class SampleUserFacadeImpl implements UserFacade {
 
         // if userId set hasLoggedOut
         if (userId != null && !userId.isEmpty()) {
-            eci.getService().sync().name("update", "moqui.security.UserAccount")
+            serviceFacade.sync().name("update", "moqui.security.UserAccount")
                     .parameters([userId:userId, hasLoggedOut:"Y"]).disableAuthz().call()
         }
     }
@@ -762,9 +775,10 @@ class SampleUserFacadeImpl implements UserFacade {
             return false
         }
 
+        EntityFacade entityFacade = eci.getEntity()
         // lookup login key, by hashed key
         String hashedKey = getSimpleHash(loginKey, "", getLoginKeyHashType(), false)
-        EntityValue userLoginKey = eci.getEntity().find("moqui.security.UserLoginKey")
+        EntityValue userLoginKey = entityFacade.find("moqui.security.UserLoginKey")
                 .condition("loginKey", hashedKey).disableAuthz().one()
 
         // see if we found a record for the login key
@@ -781,13 +795,16 @@ class SampleUserFacadeImpl implements UserFacade {
         }
 
         // login user with internalLoginUser()
-        EntityValue userAccount = eci.getEntity().find("moqui.security.UserAccount")
+        EntityValue userAccount = entityFacade.find("moqui.security.UserAccount")
                 .condition("userId", userLoginKey.userId).disableAuthz().one()
         return internalLoginUser(userAccount.getString("username"))
     }
     @Override String getLoginKey() {
         String userId = getUserId()
         if (!userId) throw new AuthenticationRequiredException("No active user, cannot get login key")
+
+        ServiceFacade serviceFacade = eci.getService()
+        EntityFacade entityFacade = eci.getEntity()
 
         // generate login key
         String loginKey = StringUtilities.getRandomString(40)
@@ -797,12 +814,12 @@ class SampleUserFacadeImpl implements UserFacade {
         int expireHours = getLoginKeyExpireHours()
         Timestamp fromDate = getNowTimestamp()
         long thruTime = fromDate.getTime() + (expireHours * 60*60*1000)
-        eci.getService().sync().name("create", "moqui.security.UserLoginKey")
+        serviceFacade.sync().name("create", "moqui.security.UserLoginKey")
                 .parameters([loginKey:hashedKey, userId:userId, fromDate:fromDate, thruDate:new Timestamp(thruTime)])
                 .disableAuthz().requireNewTransaction(true).call()
 
         // clean out expired keys
-        eci.entity.find("moqui.security.UserLoginKey").condition("userId", userId)
+        entityFacade.find("moqui.security.UserLoginKey").condition("userId", userId)
                 .condition("thruDate", EntityCondition.LESS_THAN, fromDate).disableAuthz().deleteAll()
 
         return loginKey
@@ -839,15 +856,18 @@ class SampleUserFacadeImpl implements UserFacade {
         return hasPermissionById(getUserId(), userPermissionId, getNowTimestamp(), eci) }
 
     static boolean hasPermission(String username, String userPermissionId, Timestamp whenTimestamp, WebExecutionContext eci) {
-        EntityValue ua = eci.getEntity().fastFindOne("moqui.security.UserAccount", true, true, username)
-        if (ua == null) ua = eci.getEntity().find("moqui.security.UserAccount").condition("username", username).useCache(true).disableAuthz().one()
+        EntityFacade entityFacade = eci.getEntity()
+        EntityValue ua = entityFacade.fastFindOne("moqui.security.UserAccount", true, true, username)
+        if (ua == null) ua = entityFacade.find("moqui.security.UserAccount").condition("username", username).useCache(true).disableAuthz().one()
         if (ua == null) return false
         hasPermissionById((String) ua.userId, userPermissionId, whenTimestamp, eci)
     }
     static boolean hasPermissionById(String userId, String userPermissionId, Timestamp whenTimestamp, WebExecutionContext eci) {
         if (!userId) return false
         if ((Object) whenTimestamp == null) whenTimestamp = new Timestamp(System.currentTimeMillis())
-        return (eci.getEntity().find("moqui.security.UserPermissionCheck")
+
+        EntityFacade entityFacade = eci.getEntity()
+        return (entityFacade.find("moqui.security.UserPermissionCheck")
                 .condition([userId:userId, userPermissionId:userPermissionId] as Map<String, Object>).useCache(true).disableAuthz().list()
                 .filterByDate("groupFromDate", "groupThruDate", whenTimestamp)
                 .filterByDate("permissionFromDate", "permissionThruDate", whenTimestamp)) as boolean
@@ -856,15 +876,17 @@ class SampleUserFacadeImpl implements UserFacade {
     @Override boolean isInGroup(String userGroupId) { return isInGroup(getUserId(), userGroupId, getNowTimestamp(), eci) }
 
     static boolean isInGroup(String username, String userGroupId, Timestamp whenTimestamp, WebExecutionContext eci) {
-        EntityValue ua = eci.getEntity().fastFindOne("moqui.security.UserAccount", true, true, username)
-        if (ua == null) ua = eci.getEntity().find("moqui.security.UserAccount").condition("username", username).useCache(true).disableAuthz().one()
+        EntityFacade entityFacade = eci.getEntity()
+        EntityValue ua = entityFacade.fastFindOne("moqui.security.UserAccount", true, true, username)
+        if (ua == null) ua = entityFacade.find("moqui.security.UserAccount").condition("username", username).useCache(true).disableAuthz().one()
         return isInGroupById((String) ua?.userId, userGroupId, whenTimestamp, eci)
     }
     static boolean isInGroupById(String userId, String userGroupId, Timestamp whenTimestamp, WebExecutionContext eci) {
         if (userGroupId == "ALL_USERS") return true
         if (!userId) return false
         if ((Object) whenTimestamp == null) whenTimestamp = new Timestamp(System.currentTimeMillis())
-        return (eci.getEntity().find("moqui.security.UserGroupMember").condition("userId", userId).condition("userGroupId", userGroupId)
+        EntityFacade entityFacade = eci.getEntity()
+        return (entityFacade.find("moqui.security.UserGroupMember").condition("userId", userId).condition("userGroupId", userGroupId)
                 .useCache(true).disableAuthz().list().filterByDate("fromDate", "thruDate", whenTimestamp)) as boolean
     }
 
@@ -879,7 +901,8 @@ class SampleUserFacadeImpl implements UserFacade {
         Set<String> groupIdSet = new HashSet(allUserGroupIdOnly)
         if (userId) {
             // expand the userGroupId Set with UserGroupMember
-            EntityList ugmList = eci.getEntity().find("moqui.security.UserGroupMember").condition("userId", userId)
+            EntityFacade entityFacade = eci.getEntity()
+            EntityList ugmList = entityFacade.find("moqui.security.UserGroupMember").condition("userId", userId)
                     .useCache(true).disableAuthz().list().filterByDate(null, null, null)
             for (EntityValue userGroupMember in ugmList) groupIdSet.add((String) userGroupMember.userGroupId)
         }
@@ -891,8 +914,9 @@ class SampleUserFacadeImpl implements UserFacade {
         if (checkList == null) {
             // get the list for each group separately to increase cache hits/efficiency
             checkList = new ArrayList<>()
+            EntityFacade entityFacade = eci.getEntity()
             for (String userGroupId in getUserGroupIdSet()) {
-                EntityList atcvList = eci.getEntity().find("moqui.security.ArtifactTarpitCheckView")
+                EntityList atcvList = entityFacade.find("moqui.security.ArtifactTarpitCheckView")
                         .condition("userGroupId", userGroupId).condition("artifactTypeEnumId", artifactTypeEnum.name())
                         .useCache(true).disableAuthz().list()
                 int atcvListSize = atcvList.size()
@@ -908,8 +932,9 @@ class SampleUserFacadeImpl implements UserFacade {
         if (currentInfo.internalArtifactAuthzCheckList == null) {
             // get the list for each group separately to increase cache hits/efficiency
             ArrayList<ArtifactAuthzCheck> newList = new ArrayList<>()
+            EntityFacade entityFacade = eci.getEntity()
             for (String userGroupId in getUserGroupIdSet()) {
-                EntityList aacvList = eci.getEntity().find("moqui.security.ArtifactAuthzCheckView")
+                EntityList aacvList = entityFacade.find("moqui.security.ArtifactAuthzCheckView")
                         .condition("userGroupId", userGroupId).useCache(true).disableAuthz().list()
                 int aacvListSize = aacvList.size()
                 for (int i = 0; i < aacvListSize; i++) newList.add(new ArtifactAuthzCheck((EntityValueBase) aacvList.get(i)))
@@ -928,7 +953,8 @@ class SampleUserFacadeImpl implements UserFacade {
     @Override EntityValue getVisit() {
         if (visitInternal != null) return visitInternal
         if (visitId == null || visitId.isEmpty()) return null
-        visitInternal = eci.getEntity().fastFindOne("moqui.server.Visit", false, true, visitId)
+        EntityFacade entityFacade = eci.getEntity()
+        visitInternal = entityFacade.fastFindOne("moqui.server.Visit", false, true, visitId)
         return visitInternal
     }
     @Override String getVisitorId() {
@@ -1013,7 +1039,8 @@ class SampleUserFacadeImpl implements UserFacade {
 
             EntityValueBase ua = (EntityValueBase) null
             if (username != null && username.length() > 0) {
-                ua = (EntityValueBase) ufi.eci.getEntity().find("moqui.security.UserAccount")
+                EntityFacade entityFacade = ufi.eci.getEntity()
+                ua = (EntityValueBase) entityFacade.find("moqui.security.UserAccount")
                         .condition("username", username).useCache(true).disableAuthz().one()
             }
             if (ua != null) {

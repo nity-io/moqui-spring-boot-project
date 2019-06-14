@@ -14,12 +14,12 @@
 package org.moqui.impl.screen
 
 import groovy.transform.CompileStatic
+import org.moqui.context.ResourceFacade
 import org.moqui.context.WebExecutionContext
 import org.moqui.context.WebExecutionContextFactory
-import org.moqui.impl.context.WebExecutionContextImpl
-import org.moqui.util.ContextStack
+import org.moqui.context.WebFacade
 import org.moqui.impl.actions.XmlAction
-import org.moqui.impl.context.ExecutionContextImpl
+import org.moqui.util.ContextStack
 import org.moqui.util.MNode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -57,6 +57,7 @@ class ScreenTree {
 
         WebExecutionContext eci = ecfi.getEci() as WebExecutionContext
         ContextStack cs = eci.getContext()
+        WebFacade webFacade = eci.getWeb()
 
         // logger.warn("========= treeNodeId = ${cs.get("treeNodeId")}")
         // if this is the root node get the main tree sub-nodes, otherwise find the node and use its sub-nodes
@@ -76,11 +77,12 @@ class ScreenTree {
         List outputNodeList = getChildNodes(currentSubNodeList, eci, cs, true)
 
         // logger.warn("========= outputNodeList = ${outputNodeList}")
-        eci.getWeb().sendJsonResponse(outputNodeList)
+        webFacade.sendJsonResponse(outputNodeList)
     }
 
     List<Map> getChildNodes(List<TreeSubNode> currentSubNodeList, WebExecutionContext eci, ContextStack cs, boolean recurse) {
         List<Map> outputNodeList = []
+        ResourceFacade resourceFacade = eci.getResource()
 
         for (TreeSubNode tsn in currentSubNodeList) {
             // check condition
@@ -92,7 +94,7 @@ class ScreenTree {
 
             // iterate over the list and add a response node for each entry
             String nodeListName = tsn.treeSubNodeNode.attribute("list") ?: "nodeList"
-            List nodeList = (List) eci.getResource().expression(nodeListName, "")
+            List nodeList = (List) resourceFacade.expression(nodeListName, "")
             // logger.warn("======= nodeList named [${nodeListName}]: ${nodeList}")
             Iterator i = nodeList?.iterator()
             int index = 0
@@ -111,8 +113,8 @@ class ScreenTree {
                     if (tn.actions != null) tn.actions.run(eci)
 
                     MNode showNode = tn.linkNode != null ? tn.linkNode : tn.labelNode
-                    String id = eci.getResource().expand((String) showNode.attribute("id"), tn.location + ".id")
-                    String text = eci.getResource().expand((String) showNode.attribute("text"), tn.location + ".text")
+                    String id = resourceFacade.expand((String) showNode.attribute("id"), tn.location + ".id")
+                    String text = resourceFacade.expand((String) showNode.attribute("text"), tn.location + ".text")
                     Map aAttrMap = (Map) null
                     if (tn.linkNode != null) {
                         ScreenUrlInfo.UrlInstance urlInstance = ((ScreenRenderImpl) cs.get("sri")).makeUrlByType((String) tn.linkNode.attribute("url"),

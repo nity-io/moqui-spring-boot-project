@@ -181,6 +181,8 @@ class TransactionFacadeImpl implements TransactionFacade {
         return runRequireNew(timeout, rollbackMessage, true, true, closure)
     }
     protected final static boolean requireNewThread = true
+
+    @Override
     Object runRequireNew(Integer timeout, String rollbackMessage, boolean beginTx, boolean threadReuseEci, Closure closure) {
         Object result = null
         if (requireNewThread) {

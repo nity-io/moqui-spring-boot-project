@@ -36,17 +36,6 @@ public class MoquiResource {
 
     private static ResourceExecutionContextFactory activeExecutionContextFactory = null;
 
-    private static final ServiceLoader<ResourceExecutionContextFactory> executionContextFactoryLoader =
-            ServiceLoader.load(ResourceExecutionContextFactory.class);
-    static {
-        // only do this if the moqui.init.static System property is true
-        if ("true".equals(System.getProperty("moqui.init.static"))) {
-            // initialize the activeExecutionContextFactory from configuration using java.util.ServiceLoader
-            // the implementation class name should be in: "META-INF/services/org.moqui.context.ExecutionContextFactory"
-            activeExecutionContextFactory = executionContextFactoryLoader.iterator().next();
-        }
-    }
-
     public static void dynamicInit(ResourceExecutionContextFactory executionContextFactory) {
         if (activeExecutionContextFactory != null && !activeExecutionContextFactory.isDestroyed())
             throw new IllegalStateException("Active ExecutionContextFactory already in place, cannot set one dynamically.");

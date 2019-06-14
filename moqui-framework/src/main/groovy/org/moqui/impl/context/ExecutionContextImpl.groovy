@@ -34,6 +34,7 @@ class ExecutionContextImpl implements ExecutionContext{
     private volatile Object serviceFacade
     private volatile Object resourceFacade
     private volatile Object loggerFacade
+    private volatile Object webFacade
 
     ExecutionContextImpl(ExecutionContextFactory executionContextFactory, Thread forThread) {
         this.ecfi = executionContextFactory;
@@ -171,7 +172,7 @@ class ExecutionContextImpl implements ExecutionContext{
     }
 
     @Override
-    Object getEntity(){
+    <T> T getEntity(){
         if(entityFacade == null) {
             synchronized (ExecutionContextImpl.class) {
                 if (entityFacade == null) {
@@ -184,11 +185,11 @@ class ExecutionContextImpl implements ExecutionContext{
             }
         }
 
-        return entityFacade
+        return (T) entityFacade
     }
 
     @Override
-    Object getService(){
+    <T> T getService(){
         if(serviceFacade == null) {
             synchronized (ExecutionContextImpl.class) {
                 if (serviceFacade == null) {
@@ -201,11 +202,11 @@ class ExecutionContextImpl implements ExecutionContext{
             }
         }
 
-        return serviceFacade
+        return (T) serviceFacade
     }
 
     @Override
-    Object getResource(){
+    <T> T getResource(){
         if(resourceFacade == null) {
             synchronized (ExecutionContextImpl.class) {
                 if (resourceFacade == null) {
@@ -218,11 +219,11 @@ class ExecutionContextImpl implements ExecutionContext{
             }
         }
 
-        return resourceFacade
+        return (T) resourceFacade
     }
 
     @Override
-    Object getLogger(){
+    <T> T getLogger(){
         if(loggerFacade == null) {
             synchronized (ExecutionContextImpl.class) {
                 if (loggerFacade == null) {
@@ -235,6 +236,25 @@ class ExecutionContextImpl implements ExecutionContext{
             }
         }
 
-        return loggerFacade
+        return (T) loggerFacade
     }
+
+    @Override
+    <T> T getWeb(){
+        if(webFacade == null) {
+            synchronized (ExecutionContextImpl.class) {
+                if (webFacade == null) {
+                    def name = "org.moqui.MoquiWeb"
+
+                    Class<?> moquiWebClass = Thread.currentThread().getContextClassLoader().loadClass(name)
+                    Method loggerMethod = moquiWebClass.getMethod("getWeb")
+                    webFacade = loggerMethod.invoke(null)
+                }
+            }
+        }
+
+        return (T) webFacade
+    }
+
+
 }

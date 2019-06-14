@@ -72,11 +72,13 @@ public interface ExecutionContext {
 
     long getForThreadId();
 
-    Object getEntity();
+    <T> T getEntity();
 
-    Object getService();
+    <T> T getService();
 
-    Object getResource();
+    <T> T getResource();
 
-    Object getLogger();
+    <T> T getLogger();
+
+    <T> T getWeb();
 }

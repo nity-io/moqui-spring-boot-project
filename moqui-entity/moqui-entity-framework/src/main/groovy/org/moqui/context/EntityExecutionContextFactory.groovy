@@ -28,8 +28,6 @@ import java.util.List;
  */
 public interface EntityExecutionContextFactory extends ExecutionContextFactory{
 
-    /** Called after construction but before registration with Moqui/Servlet, check for empty database and load configured data. */
-    boolean checkEmptyDb();
     /** Destroy this ExecutionContextFactory and all resources it uses (all facades, tools, etc) */
     void destroy();
     boolean isDestroyed();

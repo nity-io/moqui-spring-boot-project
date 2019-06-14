@@ -36,15 +36,15 @@ public interface WebExecutionContext extends ExecutionContext {
      * If not running in a web context will return null.
      */
     @Nullable
-    WebFacade getWeb();
+    <T> T getWeb();
 
     /** For accessing resources by location string (http://, jar://, component://, content://, classpath://, etc). */
     @Nonnull
-    ResourceFacade getResource();
+    <T> T getResource();
 
     /** For trace, error, etc logging to the console, files, etc. */
     @Nonnull
-    LoggerFacade getLogger();
+    <T> T getLogger();
 
     /** For managing and accessing caches. */
     @Nonnull
@@ -56,11 +56,11 @@ public interface WebExecutionContext extends ExecutionContext {
 
     /** For interactions with a relational database. */
     @Nonnull
-    EntityFacade getEntity();
+    <T> T getEntity();
 
     /** For calling services (local or remote, sync or async or scheduled). */
     @Nonnull
-    ServiceFacade getService();
+    <T> T getService();
 
     /** For rendering screens for general use (mostly for things other than web pages or web page snippets). */
     @Nonnull

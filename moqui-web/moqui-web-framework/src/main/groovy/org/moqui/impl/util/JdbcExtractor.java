@@ -15,6 +15,7 @@ package org.moqui.impl.util;
 
 import org.moqui.BaseException;
 import org.moqui.context.WebExecutionContext;
+import org.moqui.entity.EntityFacade;
 import org.moqui.etl.SimpleEtl;
 import org.moqui.impl.context.ExecutionContextImpl;
 import org.slf4j.Logger;
@@ -65,18 +66,23 @@ public class JdbcExtractor implements SimpleEtl.Extractor {
         Statement stmt = null;
         ResultSet rs = null;
         try {
-            xacon = eci.getEntity().getConfConnection(confMap);
+            EntityFacade entityFacade = eci.getEntity();
+            xacon = entityFacade.getConfConnection(confMap);
             con = xacon.getConnection();
             stmt = con.createStatement();
             rs = stmt.executeQuery(selectSql);
             ResultSetMetaData rsmd = rs.getMetaData();
             int columnCount = rsmd.getColumnCount();
             String[] columnNames = new String[columnCount];
-            for (int i = 1; i <= columnCount; i++) columnNames[i-1] = rsmd.getColumnName(i);
+            for (int i = 1; i <= columnCount; i++){
+                columnNames[i-1] = rsmd.getColumnName(i);
+            }
 
             while (rs.next()) {
                 SimpleEtl.SimpleEntry curEntry = new SimpleEtl.SimpleEntry(recordType, new HashMap<>());
-                for (int i = 1; i <= columnCount; i++) curEntry.values.put(columnNames[i-1], rs.getObject(i));
+                for (int i = 1; i <= columnCount; i++){
+                    curEntry.values.put(columnNames[i-1], rs.getObject(i));
+                }
 
                 try {
                     etl.processEntry(curEntry);
@@ -88,10 +94,18 @@ public class JdbcExtractor implements SimpleEtl.Extractor {
         } catch (Exception e) {
             throw new BaseException("Error in SQL query " + selectSql, e);
         } finally {
-            if (rs != null) rs.close();
-            if (stmt != null) stmt.close();
-            if (con != null) con.close();
-            if (xacon != null) xacon.close();
+            if (rs != null){
+                rs.close();
+            }
+            if (stmt != null){
+                stmt.close();
+            }
+            if (con != null){
+                con.close();
+            }
+            if (xacon != null){
+                xacon.close();
+            }
         }
     }
 }

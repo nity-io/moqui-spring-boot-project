@@ -17,6 +17,7 @@ import groovy.transform.CompileStatic
 import org.moqui.BaseException
 import org.moqui.MoquiService
 import org.moqui.context.ExecutionContext
+import org.moqui.context.ServiceExecutionContextFactory
 import org.moqui.entity.*
 import org.moqui.impl.context.ServiceExecutionContextFactoryImpl
 import org.moqui.impl.entity.EntityDefinition
@@ -99,7 +100,7 @@ class EntityAutoServiceRunner implements ServiceRunner {
     }
 
     protected static void checkFromDate(EntityDefinition ed, Map<String, Object> parameters,
-                                        Map<String, Object> result, ServiceExecutionContextFactoryImpl ecfi) {
+                                        Map<String, Object> result, ServiceExecutionContextFactory ecfi) {
         List<String> pkFieldNames = ed.getPkFieldNames()
 
         // always make fromDate optional, whether or not part of the pk; do this before the allPksIn check
@@ -300,12 +301,12 @@ class EntityAutoServiceRunner implements ServiceRunner {
     }
 
     /** Does a create if record does not exist, or update if it does. */
-    static void storeEntity(ServiceExecutionContextFactoryImpl ecfi, ExecutionContext eci, EntityDefinition ed, Map<String, Object> parameters,
+    static void storeEntity(ServiceExecutionContextFactory ecfi, ExecutionContext eci, EntityDefinition ed, Map<String, Object> parameters,
                             Map<String, Object> result, ArrayList<String> outParamNames) {
         storeRecursive(ecfi, ecfi.getEntity(), ed, parameters, result, outParamNames, null)
     }
 
-    static void storeRecursive(ServiceExecutionContextFactoryImpl ecfi, EntityFacade efi, EntityDefinition ed, Map<String, Object> parameters,
+    static void storeRecursive(ServiceExecutionContextFactory ecfi, EntityFacade efi, EntityDefinition ed, Map<String, Object> parameters,
                                Map<String, Object> result, ArrayList<String> outParamNames, Map<String, Object> parentPks) {
         EntityValue newEntityValue = efi.makeValue(ed.getFullEntityName())
 
@@ -354,7 +355,7 @@ class EntityAutoServiceRunner implements ServiceRunner {
         storeRelated(ecfi, efi, (EntityValueBase) lookedUpValue, parameters, result, parentPks)
     }
 
-    static void storeRelated(ServiceExecutionContextFactoryImpl ecfi, EntityFacade efi, EntityValueBase parentValue,
+    static void storeRelated(ServiceExecutionContextFactory ecfi, EntityFacade efi, EntityValueBase parentValue,
                              Map<String, Object> parameters, Map<String, Object> result, Map<String, Object> parentPks) {
         EntityDefinition ed = parentValue.getEntityDefinition()
 

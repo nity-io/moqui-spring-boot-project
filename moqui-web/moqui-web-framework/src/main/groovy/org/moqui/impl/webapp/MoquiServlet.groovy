@@ -23,6 +23,7 @@ import org.moqui.context.ExecutionContextThreadHolder
 import org.moqui.context.NotificationMessage
 import org.moqui.context.WebExecutionContext
 import org.moqui.context.WebExecutionContextFactory
+import org.moqui.context.WebFacade
 import org.moqui.impl.context.WebExecutionContextFactoryImpl
 import org.moqui.impl.screen.ScreenRenderImpl
 import org.moqui.util.MNode
@@ -102,7 +103,8 @@ class MoquiServlet extends HttpServlet {
         ScreenRenderImpl sri = null
         try {
             ec.initWebFacade(webappName, request, response)
-            ec.web.requestAttributes.put("moquiRequestStartTime", startTime)
+            WebFacade webFacade = ec.getWeb()
+            webFacade.requestAttributes.put("moquiRequestStartTime", startTime)
 
             sri = (ScreenRenderImpl) ec.getScreen().makeRender().saveHistory(true)
             sri.render(request, response)
@@ -173,10 +175,11 @@ class MoquiServlet extends HttpServlet {
 
         if (ecfi != null && errorCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR && !isBrokenPipe(origThrowable)) {
             WebExecutionContext ec = (WebExecutionContext) ecfi.getEci()
+            WebFacade webFacade = ec.getWeb()
             ec.makeNotificationMessage().topic("WebServletError").type(NotificationMessage.NotificationType.danger)
                     .title('''Web Error ${errorCode?:''} (${username?:'no user'}) ${path?:''} ${message?:'N/A'}''')
                     .message([errorCode:errorCode, errorType:errorType, message:message, exception:origThrowable?.toString(),
-                        path:ec.web.getPathInfo(), parameters:ec.web.getRequestParameters(), username:ec.user.username] as Map<String, Object>)
+                        path:webFacade.getPathInfo(), parameters:webFacade.getRequestParameters(), username:ec.user.username] as Map<String, Object>)
                     .send()
         }
 
@@ -185,6 +188,7 @@ class MoquiServlet extends HttpServlet {
             return
         }
         WebExecutionContext ec = (WebExecutionContext) ecfi.getEci()
+        WebFacade webFacade = ec.getWeb()
         String acceptHeader = request.getHeader("Accept")
         boolean acceptHtml = acceptHeader != null && acceptHeader.contains("text/html")
         MNode errorScreenNode = acceptHtml ? ecfi.getWebappInfo(moquiWebappName)?.getErrorScreenNode(errorType) : null
@@ -205,8 +209,8 @@ class MoquiServlet extends HttpServlet {
                 response.sendError(errorCode, message)
             }
         } else {
-            if (ec.web != null) {
-                ec.web.sendError(errorCode, message, origThrowable)
+            if (webFacade != null) {
+                webFacade.sendError(errorCode, message, origThrowable)
             } else {
                 response.sendError(errorCode, message)
             }

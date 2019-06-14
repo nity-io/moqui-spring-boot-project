@@ -17,6 +17,7 @@ import groovy.transform.CompileStatic
 import org.moqui.context.ExecutionContext
 import org.moqui.context.WebExecutionContext
 import org.moqui.context.WebExecutionContextFactory
+import org.moqui.impl.service.RestApi
 import org.moqui.util.ContextStack
 import org.moqui.context.ValidationError
 import org.moqui.context.WebFacade
@@ -188,6 +189,11 @@ class WebFacadeStub implements WebFacade {
         */
     }
 
+    @Override
+    void sendJsonError(int statusCode, String errorMessages) {
+
+    }
+
     @Override void sendTextResponse(String text) { sendTextResponse(text, "text/plain", null) }
     @Override void sendTextResponse(String text, String contentType, String filename) {
         WebFacadeImpl.sendTextResponseInternal(text, contentType, filename, ecfi.eci, httpServletRequest, httpServletResponse, requestAttributes)
@@ -224,6 +230,16 @@ class WebFacadeStub implements WebFacade {
     @Override
     void saveMessagesToSession() {
 
+    }
+
+    @Override
+    WebExecutionContextFactory getFactory() {
+        return null
+    }
+
+    @Override
+    RestApi getRestApi() {
+        return null
     }
 
     static class HttpServletRequestStub implements HttpServletRequest {
