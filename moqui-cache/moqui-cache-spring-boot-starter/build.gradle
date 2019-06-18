@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-group = 'io.nity.moqui'
-version = '0.9.0'
-
 apply plugin: 'groovy'
 
 repositories {

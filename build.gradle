@@ -21,6 +21,22 @@ buildscript {
     repositories { jcenter() }
 }
 
+//sample项目不install
+allprojects {
+    gradle.taskGraph.whenReady {taskGraph ->
+        tasks.each { task ->
+            if (task.name == "install" && project.name.contains("sample")){
+                task.enabled = false
+            }
+        }
+    }
+}
+
 subprojects {
+    group = 'io.nity.moqui'
+    version = '0.9.0'
+
+    apply plugin: 'maven'
+    
     task allDeps(type: DependencyReportTask) {}
 }

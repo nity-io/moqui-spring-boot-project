@@ -16,8 +16,6 @@
 //tasks.withType(GroovyCompile) { options.compilerArgs << "-Xlint:unchecked" }
 // tasks.withType(GroovyCompile) { options.compilerArgs << "-Xlint:deprecation" }
 
-version = '2.1.1'
-
 apply plugin: 'groovy'
 // to run gradle-versions-plugin use "gradle dependencyUpdates"
 apply plugin: 'com.github.ben-manes.versions'

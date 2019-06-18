@@ -7,9 +7,6 @@ buildscript {
     }
 }
 
-group = 'io.nity.moqui'
-version = '0.9.0'
-
 apply plugin: 'groovy'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'

@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-version = '2.1.1-rc2'
-
 apply plugin: 'groovy'
 
 // NOTE: packages should match group, name, version found at https://bintray.com/bintray/jcenter
