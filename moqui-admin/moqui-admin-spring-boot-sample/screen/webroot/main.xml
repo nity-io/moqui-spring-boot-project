@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" require-authentication="false" history="false">
+
+    <pre-actions><script>
+        // jQuery/UI
+        html_scripts.add('/moqui/libs/jquery/jquery.min.js')
+        // Bootstrap
+        html_scripts.add('/moqui/libs/twitter-bootstrap/js/bootstrap.min.js')
+        // Moqui webroot layout
+        html_stylesheets.add('/moqui/css/webroot-layout.css')
+    </script></pre-actions>
+    <widgets>
+        <render-mode>
+            <text type="html" location="classpath://screen/includes/Header.html.ftl" no-boundary-comment="true"/>
+            <text type="xsl-fo" location="classpath://screen/includes/Header.xsl-fo.ftl" no-boundary-comment="true"/>
+        </render-mode>
+        <!-- NOTE: this screen is not under the apps screen, but uses similar header/footer/etc -->
+
+        <container id="content" style="Login"><container style="inner"><container style="container-fluid">
+            <!-- if there are no user accounts, other than the _NA_ UserAccount which is in seed data, show form to create admin account -->
+            <widgets>
+                <render-mode><text type="html" template="true" location="//template/webroot/main.ftl"/></render-mode>
+            </widgets>
+        </container></container></container>
+
+        <render-mode>
+            <text type="html" location="classpath://screen/includes/Footer.html.ftl"/>
+            <text type="xsl-fo"><![CDATA[${sri.getAfterScreenWriterText()}</fo:flow></fo:page-sequence></fo:root>]]></text>
+        </render-mode>
+    </widgets>
+</screen>

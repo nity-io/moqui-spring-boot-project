@@ -28,6 +28,9 @@ include "moqui-web:moqui-web-spring-boot-starter"
 include "moqui-web:moqui-web-spring-boot-sample"
 include "moqui-web:moqui-web-spring-boot-sample-static"
 
+include "moqui-admin:moqui-admin-framework"
+include "moqui-admin:moqui-admin-spring-boot-sample"
+
 project(':moqui-util').projectDir = new File('moqui-util')
 project(':moqui-framework').projectDir = new File('moqui-framework')
 
@@ -54,3 +57,6 @@ project(':moqui-entity:moqui-entity-spring-boot-sample').projectDir = new File('
 project(':moqui-web:moqui-web-framework').projectDir = new File('moqui-web/moqui-web-framework')
 project(':moqui-web:moqui-web-spring-boot-starter').projectDir = new File('moqui-web/moqui-web-spring-boot-starter')
 project(':moqui-web:moqui-web-spring-boot-sample').projectDir = new File('moqui-web/moqui-web-spring-boot-sample')
+
+project(':moqui-admin:moqui-admin-framework').projectDir = new File('moqui-admin/moqui-admin-framework')
+project(':moqui-admin:moqui-admin-spring-boot-sample').projectDir = new File('moqui-admin/moqui-admin-spring-boot-sample')

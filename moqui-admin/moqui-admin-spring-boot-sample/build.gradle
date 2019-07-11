@@ -1,0 +1,61 @@
+buildscript {
+    ext {
+        springBootVersion = '2.1.2.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+apply plugin: 'groovy'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+apply from: projectDir.getAbsolutePath() + "/utils.gradle"
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+
+repositories {
+    jcenter() // http://jcenter.bintray.com
+}
+
+sourceSets {
+    script {
+        resources {
+            srcDirs = ['script']
+        }
+        compileClasspath += sourceSets.main.runtimeClasspath
+    }
+    service {
+        resources {
+            srcDirs = ['service']
+        }
+    }
+}
+
+tasks.getByName("processResources") {
+    doFirst {
+        checkEntityConf()
+    }
+
+    from fileTree(dir: projectDir.absolutePath, includes: ['data/**', 'entity/**', 'script/**', 'screen/**', 'service/**', 'template/**']) // 'xsd/**'
+}
+
+dependencies {
+    compile 'org.postgresql:postgresql:42.2.2'
+    compile project(':moqui-web:moqui-web-spring-boot-starter')
+    compile project(':moqui-admin:moqui-admin-framework')
+
+    implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation 'org.codehaus.groovy:groovy'
+    
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+springBoot {
+    mainClassName = 'io.nity.moqui.admin.sample.DemoApp'
+}
