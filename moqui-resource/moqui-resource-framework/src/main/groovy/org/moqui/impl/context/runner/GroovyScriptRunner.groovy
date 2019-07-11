@@ -15,6 +15,7 @@ package org.moqui.impl.context.runner
 
 import groovy.transform.CompileStatic
 import org.codehaus.groovy.runtime.InvokerHelper
+import org.moqui.BaseException
 import org.moqui.context.ExecutionContext
 import org.moqui.context.ResourceExecutionContextFactory
 import org.moqui.context.ScriptRunner
@@ -63,9 +64,7 @@ class GroovyScriptRunner implements ScriptRunner {
             String groovyText = ecfi.resourceFacade.getLocationText(location, false)
 
             if (groovyText == null) {
-                if (!location.startsWith("classpath://")) {
-                    groovyText = ecfi.resourceFacade.getLocationText("classpath://" + location, false)
-                }
+                throw new BaseException("Can't find file, location: " + location);
             }
 
             String instancePurpose = System.getProperty("instance_purpose");

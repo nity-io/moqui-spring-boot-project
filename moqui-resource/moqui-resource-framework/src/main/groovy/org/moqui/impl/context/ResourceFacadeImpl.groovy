@@ -27,6 +27,7 @@ import org.moqui.impl.context.renderer.FtlTemplateRenderer
 import org.moqui.impl.context.runner.JavaxScriptRunner
 import org.moqui.impl.context.runner.XmlActionsScriptRunner
 import org.moqui.jcache.MCache
+import org.moqui.resource.LocationUtil
 import org.moqui.resource.ResourceReference
 import org.moqui.util.*
 import org.slf4j.Logger
@@ -211,7 +212,10 @@ class ResourceFacadeImpl implements ResourceFacade {
 
     @Override ResourceReference getLocationReference(String location) {
         if (location == null) return null
-        return internalGetReference(getLocationScheme(location), location)
+
+        String parsedLocation = LocationUtil.parse(location)
+
+        return internalGetReference(getLocationScheme(parsedLocation), parsedLocation)
     }
     static String getLocationScheme(String location) {
         String scheme = "file"
@@ -334,6 +338,7 @@ class ResourceFacadeImpl implements ResourceFacade {
     }
 
     @Override void template(String location, Writer writer) {
+        location = LocationUtil.parse(location)
         // NOTE: let version fall through to tr.render() and getLocationText()
         TemplateRenderer tr = getTemplateRendererByLocation(location)
         if (tr != null) {
@@ -386,7 +391,14 @@ class ResourceFacadeImpl implements ResourceFacade {
     }
 
     @Override Object script(String location, String method) {
+        location = LocationUtil.parse(location)
+
         int hashIdx = location.indexOf("#")
+
+        if(hashIdx > 0 && ObjectUtilities.isEmpty(method)){
+            method = location.substring(hashIdx + 1)
+        }
+
         if (hashIdx > 0) location = location.substring(0, hashIdx)
         // NOTE: version ignored here
 
