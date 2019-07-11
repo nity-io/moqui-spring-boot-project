@@ -130,6 +130,8 @@ public interface EntityFacade {
      */
     String sequencedIdPrimary(String seqName, Long staggerMax, Long bankSize);
 
+    String sequencedIdPrimaryEd(EntityDefinition ed);
+
     /** Gets the group name for specified entityName
      * @param entityName The name of the entity to get the group name
      * @return String with the group name that corresponds to the entityName
