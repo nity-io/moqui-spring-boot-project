@@ -598,13 +598,8 @@ class ScreenDefinition {
         ResourceReference contentRef = subContentRefByPath.get(pathName)
         if (contentRef != null) return contentRef
 
-        ResourceReference lastScreenRef = sfi.ecfi.getResource().getLocationReference(location)
-        if (lastScreenRef.supportsAll()) {
-            // NOTE: this caches internally so consider getting rid of subContentRefByPath
-            contentRef = lastScreenRef.findChildFile(pathName)
-        } else {
-            logger.info("Not looking for sub-content [${pathName}] under screen [${location}] because screen location does not support exists, isFile, etc")
-        }
+        String cleanLocationBase = location.substring(0, location.lastIndexOf("."))
+        contentRef = sfi.ecfi.getResource().getLocationReference(cleanLocationBase + pathName)
 
         if (contentRef != null) subContentRefByPath.put(pathName, contentRef)
         return contentRef
