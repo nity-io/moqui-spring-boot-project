@@ -19,7 +19,7 @@ limitations under the License.
     <default-property name="instance_purpose" value="dev"/>
     <default-property name="static_prefix" value=""/>
 
-    <default-property name="entity_ds_db_conf" value="h2"/>
+    <default-property name="entity_ds_db_conf" value="postgres"/>
 
     <cache-list warm-on-start="false">
         <!-- Development Mode - expires artifact cache entries; don't use these for production, load testing, etc -->
@@ -51,13 +51,21 @@ limitations under the License.
         <cache name="l10n.message" expire-time-idle="600"/>
     </cache-list>
 
+    <webapp-list>
+        <!-- The webapp.@name is looked up based on the value of the 'moqui-name' context-param in the web.xml file -->
+        <webapp name="webroot">
+            <!-- root and error screens for OOTB runtime directory (moqui/moqui-runtime repository) -->
+            <root-screen host=".*" location="//screen/webroot.xml"/>
+        </webapp>
+    </webapp-list>
+
     <user-facade class="io.nity.moqui.web.sample.SampleUserFacadeImpl">
     </user-facade>
 
     <screen-facade>
-        <screen location="classpath://screen/webroot/apps.xml">
-            <subscreens-item name="system" menu-title="System" menu-index="98" location="classpath://screen/tools/System.xml"/>
-            <subscreens-item name="tools" menu-title="Tools" menu-index="99" location="classpath://screen/tools/Tools.xml"/>
+        <screen location="//screen/webroot/apps.xml">
+            <subscreens-item name="system" menu-title="System" menu-index="98" location="//screen/tools/System.xml"/>
+            <subscreens-item name="tools" menu-title="Tools" menu-index="99" location="//screen/tools/Tools.xml"/>
         </screen>
     </screen-facade>
 
