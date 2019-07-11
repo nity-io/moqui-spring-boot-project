@@ -1798,6 +1798,7 @@ class EntityFacadeImpl implements EntityFacade {
         return dbSequencedIdPrimary(seqName, staggerMaxPrim, bankSizePrim)
     }
 
+    @Override
     String sequencedIdPrimaryEd(EntityDefinition ed) {
         EntityJavaUtil.EntityInfo entityInfo = ed.entityInfo
         try {
