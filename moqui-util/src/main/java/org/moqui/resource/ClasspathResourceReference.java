@@ -52,4 +52,9 @@ public class ClasspathResourceReference extends UrlResourceReference {
 
         return false;
     }
+
+    @Override
+    public boolean isDirectory() {
+        return false;
+    }
 }
