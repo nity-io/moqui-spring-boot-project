@@ -58,7 +58,11 @@ network_closure.sh
 gradle
 .gradle
 
-/build
-/out
+**/build
+**/out
 
 **/*.btm
+
+**/transaction-logs
+**/sessions
+**/script-classes
