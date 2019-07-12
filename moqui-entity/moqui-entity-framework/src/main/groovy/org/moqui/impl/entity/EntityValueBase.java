@@ -644,7 +644,7 @@ public abstract class EntityValueBase implements EntityValue {
                 // logger.warn("TOREMOVE: in handleAuditLog for [${ed.entityName}.${fieldName}] value=[${value}], oldValue=[${oldValue}], oldValues=[${oldValues}]", new Exception("AuditLog location"))
 
                 // NOTE: if this is changed to async the time zone on nowTimestamp gets messed up (user's time zone lost)
-                getEntityFacadeImpl().makeValue("sample.SampleEntity")
+                getEntityFacadeImpl().makeValue("moqui.entity.EntityAuditLog")
                         .setAll(parms)
                         .setSequencedIdPrimary()
                         .create();
@@ -1290,6 +1290,11 @@ public abstract class EntityValueBase implements EntityValue {
         final ExecutionContext ec = ecfi.getEci();
         final ArtifactExecutionFacade aefi = ec.getArtifactExecution();
 
+        String userName = ec.getUser().getUsername();
+        if (ObjectUtilities.isEmpty(userName)) {
+            userName = "SYSTEM";
+        }
+
         // check/set defaults
         if (entityInfo.hasFieldDefaults) checkSetFieldDefaults(ed, ec, null);
 
@@ -1298,6 +1303,18 @@ public abstract class EntityValueBase implements EntityValue {
         Long lastUpdatedLong = time != null && time > 0 ? time : System.currentTimeMillis();
         if (ed.isField("lastUpdatedStamp") && valueMapInternal.get("lastUpdatedStamp") == null)
             valueMapInternal.put("lastUpdatedStamp", new Timestamp(lastUpdatedLong));
+
+        if (ed.isField("sysLastModifiedDate") && valueMapInternal.get("sysLastModifiedDate") == null)
+            valueMapInternal.put("sysLastModifiedDate", new Timestamp(lastUpdatedLong));
+
+        if (ed.isField("sysLastModifiedByUserName") && valueMapInternal.get("sysLastModifiedByUserName") == null)
+            valueMapInternal.put("sysLastModifiedByUserName", userName);
+
+        if (ed.isField("sysCreatedDate") && valueMapInternal.get("sysCreatedDate") == null)
+            valueMapInternal.put("sysCreatedDate", new Timestamp(lastUpdatedLong));
+
+        if (ed.isField("sysCreatedByUserName") && valueMapInternal.get("sysCreatedByUserName") == null)
+            valueMapInternal.put("sysCreatedByUserName", userName);
 
         // do the artifact push/authz
         ArtifactExecutionInfoImpl aei = new ArtifactExecutionInfoImpl(entityName, ArtifactExecutionInfo.AT_ENTITY, ArtifactExecutionInfo.AUTHZA_CREATE, "create").setParameters(valueMapInternal);
@@ -1443,14 +1460,30 @@ public abstract class EntityValueBase implements EntityValue {
                     throw new EntityException("This record was updated by someone else at " + dbLus + " which was after the version you loaded at " + valueLus + ". Not updating to avoid overwriting data.");
             }
 
+            String userName = ec.getUser().getUsername();
+            if (ObjectUtilities.isEmpty(userName)) {
+                userName = "SYSTEM";
+            }
+
             // set lastUpdatedStamp
             FieldInfo lastUpdatedStampInfo = ed.entityInfo.lastUpdatedStampInfo;
+
             if (!modifiedLastUpdatedStamp && lastUpdatedStampInfo != null) {
                 final Long time = ecfi.transactionFacade.getCurrentTransactionStartTime();
                 long lastUpdatedLong = time != null && time > 0 ? time : System.currentTimeMillis();
                 valueMapInternal.put("lastUpdatedStamp", new Timestamp(lastUpdatedLong));
                 nonPkFieldArray[nonPkFieldArrayIndex] = lastUpdatedStampInfo;
                 // never gets used after this point, but if ever does will need to: nonPkFieldArrayIndex++
+            }
+
+            final Long time = ecfi.transactionFacade.getCurrentTransactionStartTime();
+            long lastUpdatedLong = time != null && time > 0 ? time : System.currentTimeMillis();
+            if (ed.isField("sysLastModifiedDate") && valueMapInternal.get("sysLastModifiedDate") == null) {
+                valueMapInternal.put("sysLastModifiedDate", new Timestamp(lastUpdatedLong));
+            }
+
+            if (ed.isField("sysLastModifiedByUserName") && valueMapInternal.get("sysLastModifiedByUserName") == null) {
+                valueMapInternal.put("sysLastModifiedByUserName", userName);
             }
 
             // do this before the db change so modified flag isn't cleared

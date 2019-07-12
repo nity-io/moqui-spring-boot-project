@@ -18,7 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="load">
         <actions><script><![CDATA[
-            org.moqui.entity.EntityDataLoader edl = ec.entity.makeDataLoader()
+            org.moqui.entity.EntityDataLoader edl = ec.service.makeDataLoader()
             String source = ""
             if (types) {
                 edl.dataTypes(new HashSet(Arrays.asList(types.split(","))))

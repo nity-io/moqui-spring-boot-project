@@ -217,6 +217,11 @@ public class EntityJavaUtil {
 
         public final FieldInfo[] pkFieldInfoArray, nonPkFieldInfoArray, allFieldInfoArray;
         final FieldInfo lastUpdatedStampInfo;
+        final FieldInfo sysLastModifiedDateInfo;
+        final FieldInfo sysLastModifiedByUserNameInfo;
+        final FieldInfo sysCreatedDateInfo;
+        final FieldInfo sysCreatedByUserNameInfo;
+        final FieldInfo sysCommentsInfo;
         public final String allFieldsSqlSelect;
         final Map<String, String> pkFieldDefaults, nonPkFieldDefaults;
 
@@ -303,6 +308,12 @@ public class EntityJavaUtil {
             Map<String, String> pkFieldDefaultsTemp = new HashMap<>();
             Map<String, String> nonPkFieldDefaultsTemp = new HashMap<>();
             FieldInfo lastUpdatedTemp = null;
+            FieldInfo sysLastModifiedDateTemp = null;
+            FieldInfo sysLastModifiedByUserNameTemp = null;
+            FieldInfo sysCreatedDateTemp = null;
+            FieldInfo sysCreatedByUserNameTemp = null;
+            FieldInfo sysCommentsTemp = null;
+
             for (int i = 0; i < allFieldInfoSize; i++) {
                 FieldInfo fi = allFieldInfoList.get(i);
                 allFieldInfoArray[i] = fi;
@@ -321,6 +332,11 @@ public class EntityJavaUtil {
                     else nonPkFieldDefaultsTemp.put(fi.name, defaultStr);
                 }
                 if ("lastUpdatedStamp".equals(fi.name)) lastUpdatedTemp = fi;
+                if ("sysLastModifiedDate".equals(fi.name)) sysLastModifiedDateTemp = fi;
+                if ("sysLastModifiedByUserName".equals(fi.name)) sysLastModifiedByUserNameTemp = fi;
+                if ("sysCreatedDate".equals(fi.name)) sysCreatedDateTemp = fi;
+                if ("sysCreatedByUserName".equals(fi.name)) sysCreatedByUserNameTemp = fi;
+                if ("sysComments".equals(fi.name)) sysCommentsTemp = fi;
             }
             createOnlyFields = createOnlyFieldsTemp;
             needsAuditLog = needsAuditLogTemp;
@@ -330,6 +346,11 @@ public class EntityJavaUtil {
             pkFieldDefaults = pkFieldDefaultsTemp.size() > 0 ? pkFieldDefaultsTemp : null;
             nonPkFieldDefaults = nonPkFieldDefaultsTemp.size() > 0 ? nonPkFieldDefaultsTemp : null;
             lastUpdatedStampInfo = lastUpdatedTemp;
+            sysLastModifiedDateInfo = sysLastModifiedDateTemp;
+            sysLastModifiedByUserNameInfo = sysLastModifiedByUserNameTemp;
+            sysCreatedDateInfo = sysCreatedDateTemp;
+            sysCreatedByUserNameInfo = sysCreatedByUserNameTemp;
+            sysCommentsInfo = sysCommentsTemp;
 
             pkFieldInfoArray = new FieldInfo[pkFieldInfoList.size()];
             pkFieldInfoList.toArray(pkFieldInfoArray);

@@ -208,6 +208,12 @@ class EntityDefinition {
                 internalEntityNode.append("field", [name:"lastUpdatedStamp", type:"date-time"])
             }
 
+            internalEntityNode.append("field", [name:"sysCreatedDate", type:"date-time"])
+            internalEntityNode.append("field", [name:"sysCreatedByUserName", type:"text-medium"])
+            internalEntityNode.append("field", [name:"sysLastModifiedDate", type:"date-time"])
+            internalEntityNode.append("field", [name:"sysLastModifiedByUserName", type:"text-medium"])
+            internalEntityNode.append("field", [name:"sysComments", type:"text-medium"])
+
             for (MNode fieldNode in internalEntityNode.children("field")) {
                 FieldInfo fi = new FieldInfo(this, fieldNode)
                 addFieldInfo(fi)
