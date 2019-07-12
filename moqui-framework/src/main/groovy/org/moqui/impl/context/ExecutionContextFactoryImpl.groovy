@@ -49,8 +49,10 @@ abstract class ExecutionContextFactoryImpl implements ExecutionContextFactory {
     protected AtomicBoolean destroyed = new AtomicBoolean(false)
 
     protected String runtimePath
-    @SuppressWarnings("GrFinalVariableAccess") protected final String runtimeConfPath
-    @SuppressWarnings("GrFinalVariableAccess") protected final MNode confXmlRoot
+    @SuppressWarnings("GrFinalVariableAccess") protected final String moduleConfPath
+    @SuppressWarnings("GrFinalVariableAccess") protected static final MNode confXmlDefault
+    @SuppressWarnings("GrFinalVariableAccess") protected static final MNode confXmlRoot
+    protected static final Map<String, MNode> confXmlMap = new HashMap()
 
     protected MNode serverStatsNode
     protected String moquiVersion = ""
@@ -75,27 +77,51 @@ abstract class ExecutionContextFactoryImpl implements ExecutionContextFactory {
     /** An executor for the scheduled job runner */
     public final ScheduledThreadPoolExecutor scheduledExecutor = new ScheduledThreadPoolExecutor(4)
 
-    ExecutionContextFactoryImpl(String runtimeConfPath) {
-        this.runtimeConfPath = runtimeConfPath
-        this.confXmlRoot = initConfXmlRoot()
+    static {
+        URL defaultConfUrl = ClassLoader.getSystemResource("MoquiDefaultConf.xml")
+        if (defaultConfUrl == null) throw new IllegalArgumentException("Could not find MoquiDefaultConf.xml file on the classpath")
+
+        confXmlDefault = MNode.parse(defaultConfUrl.toString(), defaultConfUrl.newInputStream())
+        confXmlRoot = MNode.parse(defaultConfUrl.toString(), defaultConfUrl.newInputStream())
+
+        String componentConfigFile = "MoquiConf.xml";
+        Enumeration<URL> urlEnumeration = ClassLoader.getSystemResources(componentConfigFile)
+        if (urlEnumeration != null){
+            while(urlEnumeration.hasMoreElements()){
+                URL url = urlEnumeration.nextElement()
+                logger.info("loadComponentConf {}", url.getPath())
+                MNode compXmlNode = MNode.parse(url.toString(), url.newInputStream())
+                mergeConfigNodes(confXmlRoot, compXmlNode)
+            }
+        }
+    }
+
+    ExecutionContextFactoryImpl(String moduleConfPath) {
+        this.moduleConfPath = moduleConfPath
+        loadModuleConf()
         this.workerPool = makeWorkerPool()
     }
 
-    protected MNode initConfXmlRoot() {
-        URL confUrl = this.class.getClassLoader().getResource(runtimeConfPath)
-        if (confUrl == null) throw new IllegalArgumentException("Could not find $runtimeConfPath file on the classpath")
+    protected MNode loadModuleConf() {
+        logger.info("loadModuleConf {}", moduleConfPath)
+
+        URL moduleConfUrl = this.class.getClassLoader().getResource(moduleConfPath)
+        if (moduleConfUrl == null) throw new IllegalArgumentException("Could not find $moduleConfPath file on the classpath")
 
         // initialize all configuration, get various conf files merged and load components
-        MNode runtimeConfXmlRoot = MNode.parse(confUrl.toString(), confUrl.newInputStream())
-        MNode baseConfigNode = initBaseConfig(runtimeConfXmlRoot)
+        MNode moduleConfXmlRoot = MNode.parse(moduleConfUrl.toString(), moduleConfUrl.newInputStream())
+
+        confXmlMap.put(moduleConfPath, moduleConfXmlRoot);
+
+        MNode baseConfigNode = initBaseConfig(moduleConfXmlRoot)
         // init components before initConfig() so component configuration files can be incorporated
         initComponents(baseConfigNode)
         // init the configuration (merge from component and runtime conf files)
-        MNode config = initConfig(baseConfigNode, runtimeConfXmlRoot)
+        MNode config = initConfig(baseConfigNode, moduleConfXmlRoot)
         return config
     }
 
-    protected MNode initBaseConfig(MNode runtimeConfXmlRoot) {
+    protected MNode initBaseConfig(MNode moduleConfXmlRoot) {
         Enumeration<URL> resources = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF")
         while (resources.hasMoreElements()) {
             try {
@@ -116,18 +142,15 @@ abstract class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         // don't set the moqui.runtime and moqui.conf system properties as before, causes conflict with multiple moqui instances in one JVM
         // NOTE: moqui.runtime is set in MoquiStart and in MoquiContextListener (if there is an embedded runtime directory)
         // System.setProperty("moqui.runtime", runtimePath)
-        // System.setProperty("moqui.conf", runtimeConfPath)
+        // System.setProperty("moqui.conf", moduleConfPath)
 
-        logger.info("Initializing Moqui Framework version ${moquiVersion ?: 'Unknown'}\n - runtime directory: ${this.runtimePath}\n - runtime config:    ${this.runtimeConfPath}")
+//        logger.info("Initializing Moqui Framework version ${moquiVersion ?: 'Unknown'}\n - runtime directory: ${this.runtimePath}\n - runtime config:    ${this.moduleConfPath}")
 
-        URL defaultConfUrl = this.class.getClassLoader().getResource("MoquiDefaultConf.xml")
-        if (defaultConfUrl == null) throw new IllegalArgumentException("Could not find MoquiDefaultConf.xml file on the classpath")
-        MNode newConfigXmlRoot = MNode.parse(defaultConfUrl.toString(), defaultConfUrl.newInputStream())
 
         // just merge the component configuration, needed before component init is done
-        mergeConfigComponentNodes(newConfigXmlRoot, runtimeConfXmlRoot)
+        mergeConfigComponentNodes(confXmlRoot, moduleConfXmlRoot)
 
-        return newConfigXmlRoot
+        return confXmlRoot
     }
 
     protected void initComponents(MNode baseConfigNode) {
@@ -151,19 +174,11 @@ abstract class ExecutionContextFactoryImpl implements ExecutionContextFactory {
         checkSortDependentComponents()
     }
 
-    protected MNode initConfig(MNode baseConfigNode, MNode runtimeConfXmlRoot) {
+    protected MNode initConfig(MNode baseConfigNode, MNode moduleConfXmlRoot) {
 
         // merge the runtime conf file into the default one to override any settings (they both have the same root node, go from there)
-        logger.info("Merging runtime configuration at ${runtimeConfPath}")
-        mergeConfigNodes(baseConfigNode, runtimeConfXmlRoot)
-
-        String projectConfigFile = "MoquiConf.xml";
-        URL confUrl = this.class.getClassLoader().getResource(projectConfigFile);
-        if (confUrl != null){
-            logger.info("Merging MoquiConf.xml")
-            MNode compXmlNode = MNode.parse(confUrl.toString(), confUrl.newInputStream())
-            mergeConfigNodes(baseConfigNode, compXmlNode)
-        }
+        logger.info("Merging runtime configuration at ${moduleConfPath}")
+        mergeConfigNodes(baseConfigNode, moduleConfXmlRoot)
 
         // set default System properties now that all is merged
         for (MNode defPropNode in baseConfigNode.children("default-property")) {
