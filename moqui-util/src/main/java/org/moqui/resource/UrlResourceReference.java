@@ -94,6 +94,9 @@ public class UrlResourceReference extends ResourceReference {
 
     @Override public InputStream openStream() {
         try {
+            if(locationUrl == null){
+                throw new BaseException("Can't find classpath file, location: " + this.getLocation());
+            }
             return locationUrl.openStream();
         } catch (FileNotFoundException e) {
             return null;
