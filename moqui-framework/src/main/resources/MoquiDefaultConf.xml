@@ -160,8 +160,8 @@
             see https://content-security-policy.com/
             consider "child-src 'self';", leaving out as default because 3rd party hosts needed for payment processing hosted forms, etc
             -->
-            <response-header type="screen-render" name="Content-Security-Policy" value="frame-ancestors 'none'; form-action 'self';"/>
-            <response-header type="screen-render" name="X-Frame-Options" value="deny"/>
+            <response-header type="screen-render" name="Content-Security-Policy" value="frame-ancestors 'self'; form-action 'self';"/>
+            <response-header type="screen-render" name="X-Frame-Options" value="SAMEORIGIN"/>
         </webapp>
     </webapp-list>
 
