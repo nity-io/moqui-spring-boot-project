@@ -1,22 +1,6 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-    }
-}
 
-apply plugin: 'groovy'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
-
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
-
-repositories {
-    jcenter() // http://jcenter.bintray.com
-}
 
 dependencies {
     compile project(':moqui-cache:moqui-cache-spring-boot-starter')

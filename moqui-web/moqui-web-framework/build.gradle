@@ -1,62 +1,3 @@
-/*
- * This software is in the public domain under CC0 1.0 Universal plus a
- * Grant of Patent License.
- *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
- *
- * You should have received a copy of the CC0 Public Domain Dedication
- * along with this software (see the LICENSE.md file). If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
- */
-
-tasks.withType(JavaCompile) { options.compilerArgs << "-Xlint:unchecked" }
-tasks.withType(GroovyCompile) { options.compilerArgs << "-Xlint:unchecked" }
-// tasks.withType(GroovyCompile) { options.compilerArgs << "-Xlint:deprecation" }
-
-apply plugin: 'groovy'
-// to run gradle-versions-plugin use "gradle dependencyUpdates"
-apply plugin: 'com.github.ben-manes.versions'
-// uncomment to add the Error Prone compiler; not enabled by default (doesn't work on Travis CI)
-// apply plugin: 'net.ltgt.errorprone'
-buildscript {
-    repositories {
-        jcenter()
-        // uncomment to add the Error Prone compiler: maven { url "https://plugins.gradle.org/m2/" }
-    }
-    dependencies {
-        classpath 'com.github.ben-manes:gradle-versions-plugin:0.20.0'
-        // uncomment to add the Error Prone compiler: classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.8'
-    }
-}
-dependencyUpdates.resolutionStrategy = { componentSelection { rules -> rules.all { ComponentSelection selection ->
-    boolean rejected = ['alpha', 'beta', 'rc', 'cr', 'm', 'b'].any { qualifier -> selection.candidate.version ==~ /(?i).*[.-]${qualifier}[.\d-]*/ }
-    if (rejected) selection.reject('Release candidate')
-} } }
-
-// NOTE: packages should match group, name, version found at https://bintray.com/bintray/jcenter
-repositories {
-    jcenter() // http://jcenter.bintray.com
-}
-
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
-
-sourceSets {
-    
-}
-
-groovydoc {
-    docTitle = "Moqui Framework ${version}"
-    source = sourceSets.main.allSource
-}
-
-// Log4J has annotation processors, disable to avoid warning
-tasks.withType(JavaCompile) { options.compilerArgs << "-proc:none" }
-tasks.withType(GroovyCompile) { options.compilerArgs << "-proc:none" }
-
 dependencies {
     compile project(':moqui-service:moqui-service-framework')
 
@@ -181,15 +122,6 @@ dependencies {
     // execWarRuntime ('org.eclipse.jetty:jetty-annotations:9.4.12.v20180830') // Apache 2.0
 }
 
-// setup task dependencies to make sure the start sourceSets always get run
-
-compileTestGroovy.dependsOn classes
-sourceSets.test.compileClasspath += files(sourceSets.main.output.classesDirs)
-
-// by default the Java plugin runs test on build, change to not do that (only run test if explicit task)
-// no longer workds as of gradle 4.8 or possibly earlier, use clear() instead: check.dependsOn.remove(test)
-check.dependsOn.clear()
-
 test {
     dependsOn cleanTest
     include '**/*MoquiSuite.class'
@@ -213,10 +145,3 @@ jar {
     // get all of the "resources" that are in component-standard directories instead of src/main/resources
     from fileTree(dir: projectDir.absolutePath, includes: ['data/**', 'entity/**', 'screen/**', 'service/**', 'template/**']) // 'xsd/**'
 }
-
-
-task copyDependencies { doLast {
-    delete file(projectDir.absolutePath + '/dependencies')
-    copy { from configurations.runtime; into file(projectDir.absolutePath + '/dependencies') }
-    copy { from configurations.testCompile; into file(projectDir.absolutePath + '/dependencies') }
-} }

@@ -1,19 +1,4 @@
-buildscript {
-    ext {
-        springBootVersion = '2.1.2.RELEASE'
-    }
-    repositories {
-        mavenCentral()
-    }
-}
-
-apply plugin: 'groovy'
-//apply plugin: 'io.spring.dependency-management'
 apply from: projectDir.getAbsolutePath() + "/utils.gradle"
-
-repositories {
-    jcenter() // http://jcenter.bintray.com
-}
 
 sourceSets {
     script {
@@ -43,5 +28,4 @@ dependencies {
     compile project(':moqui-web:moqui-web-spring-boot-starter')
     
     implementation 'org.codehaus.groovy:groovy:2.5.4'
-    
 }

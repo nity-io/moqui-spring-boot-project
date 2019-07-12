@@ -1,27 +1,6 @@
-buildscript {
-    ext {
-        springBootVersion = '2.1.2.RELEASE'
-    }
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-    }
-}
-
-apply plugin: 'groovy'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 apply from: projectDir.getAbsolutePath() + "/utils.gradle"
-
-group = 'com.example'
-version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '1.8'
-
-repositories {
-    jcenter() // http://jcenter.bintray.com
-}
 
 sourceSets {
     script {
