@@ -270,6 +270,10 @@ public class ObjectUtilities {
         return obj instanceof Map && ((Map) obj).size() == 0;
     }
 
+    public static boolean isNotEmpty(Object obj) {
+        return !isEmpty(obj);
+    }
+
     public static Class getClass(String javaType) {
         Class theClass = MClassLoader.getCommonClass(javaType);
         if (theClass == null) {
