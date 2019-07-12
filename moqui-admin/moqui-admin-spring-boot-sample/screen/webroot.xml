@@ -30,6 +30,13 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     -->
 
+    <transition name="test">
+        <actions>
+            <script location="//script/io/nity/moqui/admin/sample/SampleEvents.groovy#test"></script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
     <transition name="Login">
         <actions>
             <script><![CDATA[

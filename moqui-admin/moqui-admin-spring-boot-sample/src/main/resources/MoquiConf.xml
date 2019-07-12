@@ -51,31 +51,12 @@ limitations under the License.
         <cache name="l10n.message" expire-time-idle="600"/>
     </cache-list>
 
-    <webapp-list>
-        <!-- The webapp.@name is looked up based on the value of the 'moqui-name' context-param in the web.xml file -->
-        <webapp name="webroot">
-            <!-- root and error screens for OOTB runtime directory (moqui/moqui-runtime repository) -->
-            <root-screen host=".*" location="//screen/webroot.xml"/>
-        </webapp>
-    </webapp-list>
-
     <user-facade class="io.nity.moqui.admin.sample.SampleUserFacadeImpl">
     </user-facade>
-
-    <screen-facade>
-        <screen location="classpath://screen/moqui/apps.xml">
-            <subscreens-item name="system" menu-title="System" menu-index="98" location="classpath://screen/tools/System.xml"/>
-            <subscreens-item name="tools" menu-title="Tools" menu-index="99" location="classpath://screen/tools/Tools.xml"/>
-        </screen>
-    </screen-facade>
 
     <entity-facade>
         <load-entity location="classpath://entity/SampleEntities.xml"/>
 
-        <load-data location="classpath://data/WebrootL10nData.xml"/>
-        <load-data location="classpath://data/WebrootSecurityData.xml"/>
-        <load-data location="classpath://data/WebrootSecurityDemoData.xml"/>
-        <load-data location="classpath://data/WebrootThemeData.xml"/>
     </entity-facade>
 
 </moqui-conf>

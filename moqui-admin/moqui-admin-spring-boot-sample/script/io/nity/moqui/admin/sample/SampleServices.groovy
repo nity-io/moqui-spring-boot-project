@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-package io.nity.moqui.entity.sample
-
+package io.nity.moqui.admin.sample
 
 import org.apache.commons.lang3.RandomStringUtils
 import org.moqui.context.ExecutionContext
 import org.moqui.context.WebFacade
-import org.moqui.entity.EntityDataLoader
 import org.moqui.service.ServiceFacade
 
 def createSample() {
